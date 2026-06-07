@@ -1,0 +1,37 @@
+{
+  "version": 1.1,
+  "atDirectives": [
+    {
+      "name": "@theme",
+      "description": "Tailwind CSS v4 theme configuration directive."
+    },
+    {
+      "name": "@tailwind",
+      "description": "Tailwind CSS directive for inserting base, components, or utilities."
+    },
+    {
+      "name": "@apply",
+      "description": "Tailwind CSS directive to apply utility classes."
+    },
+    {
+      "name": "@layer",
+      "description": "Tailwind CSS directive to declare a custom layer."
+    },
+    {
+      "name": "@config",
+      "description": "Tailwind CSS v4 config directive."
+    },
+    {
+      "name": "@source",
+      "description": "Tailwind CSS v4 source directive."
+    },
+    {
+      "name": "@utility",
+      "description": "Tailwind CSS v4 custom utility directive."
+    },
+    {
+      "name": "@variant",
+      "description": "Tailwind CSS v4 custom variant directive."
+    }
+  ]
+}
