@@ -8,7 +8,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher'
 export default function PrivacyPolicyPage() {
   const { lang, setLang, t } = useLanguage()
 
-  const EMAIL = 'kusalarudika@gmail.com'
+  const EMAIL = 'clericity.booking@gmail.com'
   const emailLink = <a href={`mailto:${EMAIL}`} style={{ color: '#2563eb' }}>{EMAIL}</a>
 
   const meta = {
