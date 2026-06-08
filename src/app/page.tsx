@@ -97,12 +97,12 @@ export default function LandingPage() {
   const handleLogin = async () => {
     setLoading(true)
     setError('')
-    const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPassword })
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPassword })
     if (error) {
       setError(error.message)
-    } else {
+    } else if (signInData.user) {
       saveAdminEmail(loginEmail)
-      // Ha NEM maradjon bejelentkezve: localStorage token törlése → csak az aktuális sessionben él
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', signInData.user.id).single()
       if (!rememberMe) {
         Object.keys(localStorage)
           .filter(k => k.startsWith('sb-'))
@@ -111,11 +111,7 @@ export default function LandingPage() {
             localStorage.removeItem(k)
           })
       }
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-        router.push(profile?.role === 'staff' ? '/staff' : '/dashboard')
-      }
+      router.push(profile?.role === 'staff' ? '/staff' : '/dashboard')
     }
     setLoading(false)
   }
@@ -586,7 +582,7 @@ export default function LandingPage() {
                   <input
                     type="tel"
                     value={bizPhone}
-                    onChange={e => { setBizPhone(e.target.value); setBizPhoneError('') }}
+                    onChange={e => { setBizPhone(e.target.value.replace(/[^\d+\s\-()]/g, '')); setBizPhoneError('') }}
                     style={{ width: '100%', border: `1px solid ${bizPhoneError ? '#ef4444' : '#e5e7eb'}`, borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
                     placeholder={t.auth.phone_placeholder}
                   />
@@ -674,7 +670,7 @@ export default function LandingPage() {
                   <input
                     type="tel"
                     value={personalPhone}
-                    onChange={e => { setPersonalPhone(e.target.value); setPersonalPhoneError('') }}
+                    onChange={e => { setPersonalPhone(e.target.value.replace(/[^\d+\s\-()]/g, '')); setPersonalPhoneError('') }}
                     style={{ width: '100%', border: `1px solid ${personalPhoneError ? '#ef4444' : '#e5e7eb'}`, borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
                     placeholder={t.auth.phone_placeholder}
                   />

@@ -52,6 +52,14 @@ export default function StaffSchedulePage() {
   const [newHolidayLabel, setNewHolidayLabel] = useState('')
   const [addingHoliday, setAddingHoliday] = useState(false)
   const [holidayError, setHolidayError] = useState('')
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
   const [holidaySuccess, setHolidaySuccess] = useState(false)
 
   useEffect(() => {
@@ -184,7 +192,7 @@ export default function StaffSchedulePage() {
       </h1>
 
       {/* Heti beosztás */}
-      <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '1.5rem', maxWidth: '680px', opacity: canManageSchedule ? 1 : 0.6, pointerEvents: canManageSchedule ? 'auto' : 'none' }}>
+      <div style={{ backgroundColor: 'white', padding: isMobile ? '1rem' : '1.5rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '1.5rem', maxWidth: '680px', width: '100%', boxSizing: 'border-box', opacity: canManageSchedule ? 1 : 0.6, pointerEvents: canManageSchedule ? 'auto' : 'none' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
           <h2 style={{ fontSize: '1rem', fontWeight: '700', color: '#111827', margin: 0 }}>Heti munkabeosztás</h2>
           {!canManageSchedule && (
@@ -204,10 +212,10 @@ export default function StaffSchedulePage() {
 
           return (
             <div key={dow} style={{ borderBottom: '1px solid #f3f4f6', paddingBottom: '1rem', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.75rem' : '1rem', flexWrap: 'wrap' }}>
                 {/* Nap neve + toggle */}
-                <div style={{ width: '110px', flexShrink: 0 }}>
-                  <p style={{ fontWeight: '600', color: '#111827', fontSize: '0.9rem', margin: 0 }}>{DAY_NAMES[dow]}</p>
+                <div style={{ width: isMobile ? '80px' : '110px', flexShrink: 0 }}>
+                  <p style={{ fontWeight: '600', color: '#111827', fontSize: isMobile ? '0.82rem' : '0.9rem', margin: 0 }}>{DAY_NAMES[dow]}</p>
                   {tenantClosed && (
                     <p style={{ fontSize: '0.7rem', color: '#ef4444', margin: 0 }}>Főnök: zárva</p>
                   )}
@@ -231,33 +239,35 @@ export default function StaffSchedulePage() {
                       boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
                     }} />
                   </div>
-                  <span style={{ fontSize: '0.85rem', color: '#374151' }}>
-                    {(!day.is_closed && !tenantClosed) ? 'Dolgozom' : 'Nem dolgozom'}
-                  </span>
+                  {!isMobile && (
+                    <span style={{ fontSize: '0.85rem', color: '#374151' }}>
+                      {(!day.is_closed && !tenantClosed) ? 'Dolgozom' : 'Nem dolgozom'}
+                    </span>
+                  )}
                 </label>
 
                 {/* Időpontok */}
                 {!day.is_closed && !tenantClosed && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                     <input type="time" value={day.open_time} onChange={e => updateDay(dow, 'open_time', e.target.value)}
-                      style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '0.35rem 0.5rem', fontSize: '0.85rem', color: '#111827' }} />
+                      style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '0.3rem 0.4rem', fontSize: isMobile ? '0.8rem' : '0.85rem', color: '#111827' }} />
                     <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>–</span>
                     <input type="time" value={day.close_time} onChange={e => updateDay(dow, 'close_time', e.target.value)}
-                      style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '0.35rem 0.5rem', fontSize: '0.85rem', color: '#111827' }} />
+                      style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '0.3rem 0.4rem', fontSize: isMobile ? '0.8rem' : '0.85rem', color: '#111827' }} />
                   </div>
                 )}
               </div>
 
               {/* Szünet */}
               {!day.is_closed && !tenantClosed && (
-                <div style={{ marginTop: '0.6rem', marginLeft: '126px', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <div style={{ marginTop: '0.6rem', marginLeft: isMobile ? '0' : '126px', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                   <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>Szünet:</span>
                   <input type="time" value={day.break_start} onChange={e => updateDay(dow, 'break_start', e.target.value)}
-                    style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', color: '#111827' }}
+                    style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '0.3rem 0.4rem', fontSize: isMobile ? '0.8rem' : '0.8rem', color: '#111827' }}
                     placeholder="–" />
                   <span style={{ color: '#9ca3af', fontSize: '0.8rem' }}>–</span>
                   <input type="time" value={day.break_end} onChange={e => updateDay(dow, 'break_end', e.target.value)}
-                    style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', color: '#111827' }}
+                    style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '0.3rem 0.4rem', fontSize: isMobile ? '0.8rem' : '0.8rem', color: '#111827' }}
                     placeholder="–" />
                   {(day.break_start || day.break_end) && (
                     <button onClick={() => { updateDay(dow, 'break_start', ''); updateDay(dow, 'break_end', '') }}
@@ -303,7 +313,7 @@ export default function StaffSchedulePage() {
       </div>
 
       {/* Szabadnapok */}
-      <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', maxWidth: '680px', opacity: canManageHolidays ? 1 : 0.6, pointerEvents: canManageHolidays ? 'auto' : 'none' }}>
+      <div style={{ backgroundColor: 'white', padding: isMobile ? '1rem' : '1.5rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', maxWidth: '680px', width: '100%', boxSizing: 'border-box', opacity: canManageHolidays ? 1 : 0.6, pointerEvents: canManageHolidays ? 'auto' : 'none' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
           <h2 style={{ fontSize: '1rem', fontWeight: '700', color: '#111827', margin: 0 }}>Szabadnapjaim</h2>
           {!canManageHolidays && (
@@ -318,20 +328,20 @@ export default function StaffSchedulePage() {
 
         {/* Új szabadnap hozzáadása */}
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.25rem', alignItems: 'flex-end' }}>
-          <div>
+          <div style={{ flex: isMobile ? '1 1 100%' : 'none' }}>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '500', color: '#374151', marginBottom: '0.35rem' }}>Dátum</label>
             <input type="date" value={newHolidayDate} onChange={e => setNewHolidayDate(e.target.value)}
               min={new Date().toISOString().split('T')[0]}
-              style={{ border: '1px solid #d1d5db', borderRadius: '8px', padding: '0.5rem 0.75rem', fontSize: '0.875rem', color: '#111827' }} />
+              style={{ border: '1px solid #d1d5db', borderRadius: '8px', padding: '0.5rem 0.75rem', fontSize: '0.875rem', color: '#111827', width: isMobile ? '100%' : 'auto', boxSizing: 'border-box' }} />
           </div>
-          <div>
+          <div style={{ flex: isMobile ? '1 1 100%' : 'none' }}>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '500', color: '#374151', marginBottom: '0.35rem' }}>Megnevezés (opcionális)</label>
             <input type="text" value={newHolidayLabel} onChange={e => setNewHolidayLabel(e.target.value)}
               placeholder="pl. Betegszabadság"
-              style={{ border: '1px solid #d1d5db', borderRadius: '8px', padding: '0.5rem 0.75rem', fontSize: '0.875rem', color: '#111827', width: '200px' }} />
+              style={{ border: '1px solid #d1d5db', borderRadius: '8px', padding: '0.5rem 0.75rem', fontSize: '0.875rem', color: '#111827', width: isMobile ? '100%' : '200px', boxSizing: 'border-box' }} />
           </div>
           <button onClick={handleAddHoliday} disabled={!newHolidayDate || addingHoliday}
-            style={{ backgroundColor: '#2563eb', color: 'white', padding: '0.5rem 1.25rem', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem', opacity: !newHolidayDate ? 0.5 : 1 }}>
+            style={{ backgroundColor: '#2563eb', color: 'white', padding: '0.5rem 1.25rem', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem', opacity: !newHolidayDate ? 0.5 : 1, width: isMobile ? '100%' : 'auto' }}>
             {addingHoliday ? 'Mentés...' : '➕ Hozzáad'}
           </button>
         </div>

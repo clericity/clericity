@@ -19,6 +19,14 @@ export default function StaffHomePage() {
   const [todayBookings, setTodayBookings] = useState<Booking[]>([])
   const [stats, setStats] = useState({ today: 0, week: 0, upcoming: 0 })
   const [loading, setLoading] = useState(true)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   useEffect(() => {
     const getData = async () => {
@@ -83,18 +91,18 @@ export default function StaffHomePage() {
       </div>
 
       {/* Stat kártyák */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '2rem' }}>
         {[
           { label: 'Ma', value: stats.today, icon: '📅', color: '#2563eb', bg: '#eff6ff' },
           { label: 'Közelgő', value: stats.upcoming, icon: '⏳', color: '#7c3aed', bg: '#f5f3ff' },
           { label: 'Ezen a héten', value: stats.week, icon: '📊', color: '#059669', bg: '#ecfdf5' },
         ].map(stat => (
-          <div key={stat.label} style={{ backgroundColor: 'white', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', borderLeft: `4px solid ${stat.color}` }}>
+          <div key={stat.label} style={{ backgroundColor: 'white', borderRadius: '12px', padding: isMobile ? '0.875rem 0.75rem' : '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', borderLeft: `4px solid ${stat.color}` }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <p style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: '500' }}>{stat.label}</p>
-              <span style={{ fontSize: '1.25rem' }}>{stat.icon}</span>
+              <p style={{ fontSize: isMobile ? '0.7rem' : '0.8rem', color: '#6b7280', fontWeight: '500' }}>{stat.label}</p>
+              <span style={{ fontSize: isMobile ? '1rem' : '1.25rem' }}>{stat.icon}</span>
             </div>
-            <p style={{ fontSize: '2rem', fontWeight: '800', color: stat.color, lineHeight: 1 }}>{stat.value}</p>
+            <p style={{ fontSize: isMobile ? '1.5rem' : '2rem', fontWeight: '800', color: stat.color, lineHeight: 1 }}>{stat.value}</p>
           </div>
         ))}
       </div>
@@ -118,17 +126,17 @@ export default function StaffHomePage() {
           todayBookings.map((b, i) => {
             const isPast = new Date(b.start_time) < new Date()
             return (
-              <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.5rem', borderBottom: i < todayBookings.length - 1 ? '1px solid #f9fafb' : 'none', opacity: isPast ? 0.5 : 1 }}>
-                <div style={{ width: '52px', textAlign: 'center', flexShrink: 0 }}>
-                  <p style={{ fontSize: '0.95rem', fontWeight: '800', color: isPast ? '#9ca3af' : '#1d4ed8' }}>{b.start_time.slice(11, 16)}</p>
+              <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.75rem' : '1rem', padding: isMobile ? '0.875rem 1rem' : '1rem 1.5rem', borderBottom: i < todayBookings.length - 1 ? '1px solid #f9fafb' : 'none', opacity: isPast ? 0.5 : 1 }}>
+                <div style={{ width: '48px', textAlign: 'center', flexShrink: 0 }}>
+                  <p style={{ fontSize: '0.9rem', fontWeight: '800', color: isPast ? '#9ca3af' : '#1d4ed8' }}>{b.start_time.slice(11, 16)}</p>
                   <p style={{ fontSize: '0.7rem', color: '#9ca3af' }}>{b.end_time.slice(11, 16)}</p>
                 </div>
                 <div style={{ width: '3px', height: '36px', borderRadius: '2px', backgroundColor: isPast ? '#e5e7eb' : '#2563eb', flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontWeight: '700', color: '#111827', fontSize: '0.9rem' }}>{b.customer_last_name} {b.customer_first_name}</p>
-                  <p style={{ fontSize: '0.8rem', color: '#6b7280' }}>{b.services?.[0]?.name || '—'}</p>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontWeight: '700', color: '#111827', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.customer_last_name} {b.customer_first_name}</p>
+                  <p style={{ fontSize: '0.8rem', color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.services?.[0]?.name || '—'}</p>
                 </div>
-                {isPast && <span style={{ fontSize: '0.75rem', color: '#9ca3af', backgroundColor: '#f3f4f6', padding: '0.2rem 0.625rem', borderRadius: '100px' }}>kész</span>}
+                {isPast && <span style={{ fontSize: '0.75rem', color: '#9ca3af', backgroundColor: '#f3f4f6', padding: '0.2rem 0.625rem', borderRadius: '100px', flexShrink: 0 }}>kész</span>}
               </div>
             )
           })

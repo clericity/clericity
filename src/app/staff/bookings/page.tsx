@@ -67,6 +67,14 @@ export default function StaffBookingsPage() {
   const [newReason, setNewReason] = useState('')
   const [adding, setAdding] = useState(false)
   const [blError, setBlError] = useState('')
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   useEffect(() => {
     const init = async () => {
@@ -201,18 +209,25 @@ export default function StaffBookingsPage() {
             Nincs foglalás ebben a kategóriában.
           </div>
         ) : filtered.map(b => (
-          <div key={b.id} style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '0.75rem', borderLeft: `4px solid ${b.status === 'cancelled' ? '#ef4444' : '#22c55e'}`, opacity: b.status === 'cancelled' ? 0.7 : 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+          <div key={b.id} style={{ backgroundColor: 'white', padding: isMobile ? '1rem' : '1.25rem 1.5rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '0.75rem', borderLeft: `4px solid ${b.status === 'cancelled' ? '#ef4444' : '#22c55e'}`, opacity: b.status === 'cancelled' ? 0.7 : 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
               <p style={{ fontWeight: '700', color: '#111827' }}>{b.customer_last_name} {b.customer_first_name}</p>
               <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.75rem', borderRadius: '100px', backgroundColor: b.status === 'cancelled' ? '#fee2e2' : '#dcfce7', color: b.status === 'cancelled' ? '#ef4444' : '#16a34a', fontWeight: '600' }}>
                 {b.status === 'cancelled' ? 'Lemondva' : 'Visszaigazolva'}
               </span>
             </div>
             <p style={{ fontSize: '0.875rem', color: '#374151', marginBottom: '0.25rem' }}>
-              📅 {new Date(b.start_time).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })} · {b.start_time.slice(11, 16)} — {b.end_time.slice(11, 16)}
+              📅 {new Date(b.start_time).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric', weekday: isMobile ? undefined : 'long' })} · {b.start_time.slice(11, 16)} — {b.end_time.slice(11, 16)}
             </p>
             {b.services?.[0] && <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>✂️ {b.services[0].name}</p>}
-            <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>📧 {b.customer_email} · 📞 {b.customer_phone}</p>
+            {isMobile ? (
+              <div>
+                <p style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.15rem' }}>📧 {b.customer_email}</p>
+                <p style={{ fontSize: '0.8rem', color: '#6b7280' }}>📞 {b.customer_phone}</p>
+              </div>
+            ) : (
+              <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>📧 {b.customer_email} · 📞 {b.customer_phone}</p>
+            )}
           </div>
         ))
       )}
@@ -237,8 +252,34 @@ export default function StaffBookingsPage() {
             <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', textAlign: 'center', color: '#6b7280', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
               Jelenleg senki nem vár a te naptáradban.
             </div>
-          ) : (
-            <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+          ) : isMobile ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem' }}>
+                {waitlist.map(entry => (
+                  <div key={entry.id} style={{ backgroundColor: '#f9fafb', borderRadius: '10px', padding: '0.875rem 1rem', border: '1px solid #e5e7eb' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                      <p style={{ fontWeight: '600', color: '#111827', margin: 0, fontSize: '0.9rem' }}>
+                        {[entry.customer_last_name, entry.customer_first_name].filter(Boolean).join(' ') || '—'}
+                      </p>
+                      <span style={{
+                        fontSize: '0.72rem', fontWeight: '700', padding: '0.2rem 0.6rem', borderRadius: '999px',
+                        backgroundColor: entry.status === 'waiting' ? '#fef3c7' : entry.status === 'notified' ? '#dbeafe' : '#dcfce7',
+                        color: entry.status === 'waiting' ? '#92400e' : entry.status === 'notified' ? '#1d4ed8' : '#15803d',
+                      }}>
+                        {entry.status === 'waiting' ? '⏳ Vár' : entry.status === 'notified' ? '📧 Értesítve' : '✅ Foglalt'}
+                      </span>
+                    </div>
+                    <p style={{ color: '#374151', margin: 0, fontSize: '0.8rem', marginBottom: '0.2rem' }}>{entry.customer_email}</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <p style={{ color: '#6b7280', margin: 0, fontSize: '0.8rem' }}>{entry.services?.[0]?.name || '—'}</p>
+                      <p style={{ color: '#9ca3af', margin: 0, fontSize: '0.75rem' }}>
+                        {new Date(entry.created_at).toLocaleDateString('hu-HU', { month: 'short', day: 'numeric' })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 2fr 1fr 1fr', gap: '1rem', padding: '0.75rem 1.5rem', backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
                 {['Név', 'Email', 'Szolgáltatás', 'Státusz', 'Feliratkozott'].map(h => (
                   <p key={h} style={{ fontSize: '0.75rem', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>{h}</p>

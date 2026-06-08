@@ -195,7 +195,7 @@ export default function StaffPage() {
           <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
             {t.dash.staff_phone_ph}
           </label>
-          <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
+          <input type="tel" value={phone} onChange={e => setPhone(e.target.value.replace(/[^\d+\s\-()]/g, ''))}
             style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0.625rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box' }}
             placeholder="+36 30 123 4567" />
         </div>

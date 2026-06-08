@@ -382,7 +382,7 @@ export default function SettingsPage() {
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>{t.dash.phone_label}</label>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <div style={{ padding: '0.625rem 1rem', border: '1px solid #d1d5db', borderRadius: '8px', backgroundColor: '#f9fafb', color: '#6b7280', fontSize: '0.875rem' }}>{selectedCountry?.phone}</div>
-                  <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="30 123 4567" style={{ flex: 1, border: '1px solid #d1d5db', borderRadius: '8px', padding: '0.625rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box' }} />
+                  <input type="tel" value={phone} onChange={e => setPhone(e.target.value.replace(/[^\d+\s\-()]/g, ''))} placeholder="30 123 4567" style={{ flex: 1, border: '1px solid #d1d5db', borderRadius: '8px', padding: '0.625rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box' }} />
                 </div>
               </div>
 

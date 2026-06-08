@@ -7,6 +7,7 @@ import RichTextEditor from '@/components/RichTextEditor'
 
 export default function StaffProfilePage() {
   const [staffId, setStaffId] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
   const [name, setName] = useState('')
   const [age, setAge] = useState('')
   const [bio, setBio] = useState('')
@@ -32,6 +33,13 @@ export default function StaffProfilePage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   useEffect(() => {
     const getData = async () => {
@@ -159,7 +167,7 @@ export default function StaffProfilePage() {
     <div>
       <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', marginBottom: '1.5rem' }}>👤 Profilom</h1>
 
-      <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', maxWidth: '560px' }}>
+      <div style={{ backgroundColor: 'white', padding: isMobile ? '1.25rem' : '2rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', maxWidth: '560px', width: '100%', boxSizing: 'border-box' }}>
 
         {/* Profilkép */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.75rem' }}>
@@ -211,7 +219,7 @@ export default function StaffProfilePage() {
       </div>
 
       {/* Referencia fotók */}
-      <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', maxWidth: '560px', marginTop: '1.5rem' }}>
+      <div style={{ backgroundColor: 'white', padding: isMobile ? '1.25rem' : '2rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', maxWidth: '560px', width: '100%', boxSizing: 'border-box', marginTop: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
           <div>
             <h2 style={{ fontSize: '1rem', fontWeight: '700', color: '#111827', margin: 0 }}>📸 Referencia munkák</h2>
@@ -257,7 +265,7 @@ export default function StaffProfilePage() {
       </div>
 
       {/* Jelszó módosítás */}
-      <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', maxWidth: '560px', marginTop: '1.5rem' }}>
+      <div style={{ backgroundColor: 'white', padding: isMobile ? '1.25rem' : '2rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', maxWidth: '560px', width: '100%', boxSizing: 'border-box', marginTop: '1.5rem' }}>
         <h2 style={{ fontSize: '1rem', fontWeight: '700', color: '#111827', marginBottom: '1.25rem' }}>🔑 Jelszó módosítása</h2>
 
         <div style={{ marginBottom: '1rem' }}>
