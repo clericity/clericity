@@ -20,8 +20,79 @@ Ha kérdésed van, kérjük vedd fel velünk a kapcsolatot.
 export async function POST(request: Request) {
   const { to, customerName, serviceName, date, slot, duration, businessName, cancelToken, tenantId, emailType, bookingUrl, freedDate, freedSlot, serviceDuration, notificationType, customerEmail, customerPhone, staffName, staffPhoto } = await request.json()
 
-  // emailType: 'confirmation' | 'cancel' | 'reschedule' | 'waitlist_notify'
+  // emailType: 'confirmation' | 'cancel' | 'reschedule' | 'waitlist_notify' | 'welcome'
   const type = emailType || 'confirmation'
+
+  // Regisztrációs üdvözlő email
+  if (type === 'welcome') {
+    const displayName = customerName || 'Felhasználó'
+    const businessSlug = businessName || ''
+    const siteUrlW = process.env.NEXT_PUBLIC_SITE_URL || 'https://clericity.com'
+    const dashboardUrl = `${siteUrlW}/dashboard`
+    const tenantBookingUrl = businessSlug ? `${siteUrlW}/${businessSlug}` : siteUrlW
+
+    const { data, error } = await resend.emails.send({
+      from: 'CLERICITY <onboarding@resend.dev>',
+      to: [to],
+      subject: '🎉 Sikeres regisztráció — Üdvözöl a CLERICITY!',
+      html: `
+        <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+        <body style="margin:0;padding:0;background:#f8fafc;font-family:'Segoe UI',sans-serif;">
+          <div style="max-width:560px;margin:2rem auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+            <div style="background:linear-gradient(135deg,#0f172a,#1e3a8a);padding:2.5rem 2rem;text-align:center;">
+              <h1 style="color:white;font-size:1.75rem;font-weight:800;margin:0 0 0.5rem;">CLERICITY</h1>
+              <p style="color:#93c5fd;margin:0;font-size:0.9rem;">Online Foglalási Rendszer</p>
+            </div>
+            <div style="padding:2rem;">
+              <h2 style="color:#111827;font-size:1.25rem;font-weight:700;margin:0 0 0.75rem;">🎉 Üdvözlünk, ${displayName}!</h2>
+              <p style="color:#374151;font-size:0.9rem;line-height:1.7;margin:0 0 1.5rem;">
+                Regisztrációd sikeresen megtörtént. Mostantól saját online foglalási rendszered van — ügyfeleid könnyedén tudnak időpontot foglalni hozzád.
+              </p>
+
+              <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;">
+                <p style="color:#15803d;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 0.75rem;">✅ Mi történt most?</p>
+                <ul style="color:#374151;font-size:0.875rem;line-height:1.8;margin:0;padding-left:1.25rem;">
+                  <li>Létrehoztuk a fiókodat</li>
+                  <li>Beállítottuk az online foglalási oldalad</li>
+                  <li>Megkaptad a saját foglalási linket</li>
+                </ul>
+              </div>
+
+              ${businessSlug ? `
+              <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;">
+                <p style="color:#1d4ed8;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 0.5rem;">🔗 Foglalási linked</p>
+                <p style="color:#111827;font-size:0.875rem;margin:0;word-break:break-all;"><a href="${tenantBookingUrl}" style="color:#2563eb;font-weight:600;">${tenantBookingUrl}</a></p>
+                <p style="color:#6b7280;font-size:0.78rem;margin:0.375rem 0 0;">Ezt a linket küldd el az ügyfeleidnek!</p>
+              </div>
+              ` : ''}
+
+              <div style="text-align:center;margin:1.5rem 0;">
+                <a href="${dashboardUrl}" style="display:inline-block;background:linear-gradient(135deg,#1d4ed8,#2563eb);color:white;padding:0.875rem 2.5rem;border-radius:10px;text-decoration:none;font-weight:700;font-size:1rem;box-shadow:0 4px 12px rgba(37,99,235,0.3);">
+                  Belépés a dashboardra →
+                </a>
+              </div>
+
+              <div style="background:#fafafa;border-radius:10px;padding:1rem 1.25rem;border:1px solid #e5e7eb;">
+                <p style="color:#374151;font-size:0.8rem;line-height:1.7;margin:0;">
+                  <strong>Következő lépések:</strong><br>
+                  1. Állítsd be a nyitvatartásodat<br>
+                  2. Add hozzá a szolgáltatásaidat<br>
+                  3. Kösd össze a Google Naptáradat<br>
+                  4. Oszd meg a foglalási linkedet
+                </p>
+              </div>
+            </div>
+            <div style="background:#f8fafc;padding:1.5rem;text-align:center;border-top:1px solid #e5e7eb;">
+              <p style="color:#9ca3af;font-size:0.75rem;margin:0;">Kérdésed van? Írj nekünk: <a href="mailto:clericity.booking@gmail.com" style="color:#6b7280;">clericity.booking@gmail.com</a></p>
+              <p style="color:#9ca3af;font-size:0.72rem;margin:0.4rem 0 0;">Powered by CLERICITY</p>
+            </div>
+          </div>
+        </body></html>
+      `,
+    })
+    if (error) return NextResponse.json({ error }, { status: 400 })
+    return NextResponse.json({ success: true, data })
+  }
 
   // Várólistás értesítő email
   if (type === 'waitlist_notify') {

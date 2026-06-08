@@ -51,6 +51,23 @@ export default function LandingPage() {
   const [loginPassword, setLoginPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(true)
 
+  // Elfelejtett jelszó
+  const [showForgot, setShowForgot] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotSent, setForgotSent] = useState(false)
+  const [forgotLoading, setForgotLoading] = useState(false)
+
+  const handleForgotPassword = async () => {
+    if (!forgotEmail.trim()) return
+    setForgotLoading(true)
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+    await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
+      redirectTo: `${siteUrl}/auth/reset`,
+    })
+    setForgotSent(true)
+    setForgotLoading(false)
+  }
+
   // Cégként regisztráció
   const [companyName, setCompanyName] = useState('')
   const [companyNameError, setCompanyNameError] = useState('')
@@ -460,58 +477,102 @@ export default function LandingPage() {
               if (e.key !== 'Enter' || e.shiftKey) return
               const tag = (e.target as HTMLElement).tagName
               if (tag === 'TEXTAREA' || tag === 'BUTTON') return
-              if (activeTab === 'login') handleLogin()
+              if (activeTab === 'login' && showForgot && !forgotSent) handleForgotPassword()
+              else if (activeTab === 'login' && !showForgot) handleLogin()
               else if (activeTab === 'register' && regType === 'business') handleRegisterBusiness()
               else if (activeTab === 'register' && regType === 'personal') handleRegisterPersonal()
             }}>
 
             {/* BELÉPÉS */}
             {activeTab === 'login' && <>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>{t.auth.email}</label>
-                <div style={{ position: 'relative' }}>
-                  <input type="email" value={loginEmail}
-                    onChange={e => { setLoginEmail(e.target.value); setLoginDrop(true) }}
-                    onFocus={() => setLoginDrop(true)}
-                    onBlur={() => setTimeout(() => setLoginDrop(false), 150)}
-                    autoComplete="off"
-                    style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
-                    placeholder="email@example.com" onKeyDown={e => e.key === 'Enter' && handleLogin()} />
-                  {loginDrop && savedEmails.filter(e => e.toLowerCase().includes(loginEmail.toLowerCase())).length > 0 && (
-                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 50, marginTop: '4px', overflow: 'hidden' }}>
-                      {savedEmails.filter(e => e.toLowerCase().includes(loginEmail.toLowerCase())).map((e, i) => (
-                        <div key={i} onMouseDown={() => { setLoginEmail(e); setLoginDrop(false) }}
-                          style={{ padding: '0.75rem 1rem', cursor: 'pointer', fontSize: '0.9rem', color: '#111827', borderBottom: '1px solid #f3f4f6' }}
-                          onMouseOver={ev => (ev.currentTarget.style.backgroundColor = '#f8fafc')}
-                          onMouseOut={ev => (ev.currentTarget.style.backgroundColor = 'white')}>
-                          {e}
-                        </div>
-                      ))}
+
+              {/* Elfelejtett jelszó nézet */}
+              {showForgot ? (
+                <>
+                  <button onClick={() => { setShowForgot(false); setForgotSent(false); setForgotEmail('') }}
+                    style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.85rem', cursor: 'pointer', padding: 0, marginBottom: '1.25rem', fontWeight: '600' }}>
+                    {t.auth.forgot_back}
+                  </button>
+
+                  {forgotSent ? (
+                    <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+                      <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>📧</div>
+                      <h3 style={{ color: '#111827', fontWeight: '700', fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.auth.forgot_sent_title}</h3>
+                      <p style={{ color: '#6b7280', fontSize: '0.875rem', lineHeight: 1.7 }}>{t.auth.forgot_sent_desc}</p>
                     </div>
+                  ) : (
+                    <>
+                      <h3 style={{ color: '#111827', fontWeight: '700', fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.auth.forgot_title}</h3>
+                      <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '1.25rem', lineHeight: 1.6 }}>{t.auth.forgot_desc}</p>
+                      <div style={{ marginBottom: '1.25rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>{t.auth.email}</label>
+                        <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)}
+                          autoComplete="email"
+                          style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
+                          placeholder="email@example.com" />
+                      </div>
+                      <button onClick={handleForgotPassword} disabled={forgotLoading || !forgotEmail.trim()}
+                        style={{ width: '100%', backgroundColor: '#2563eb', color: 'white', padding: '0.875rem', borderRadius: '10px', border: 'none', cursor: forgotLoading || !forgotEmail.trim() ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '1rem', opacity: forgotLoading || !forgotEmail.trim() ? 0.5 : 1, boxShadow: '0 4px 15px rgba(37,99,235,0.35)' }}>
+                        {forgotLoading ? t.booking.loading : t.auth.forgot_send}
+                      </button>
+                    </>
                   )}
-                </div>
-              </div>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>{t.auth.password}</label>
-                <input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)}
-                  autoComplete="current-password"
-                  style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
-                  placeholder="••••••••" onKeyDown={e => e.key === 'Enter' && handleLogin()} />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', userSelect: 'none' }}>
-                  <div onClick={() => setRememberMe(!rememberMe)}
-                    style={{ width: '40px', height: '22px', borderRadius: '11px', backgroundColor: rememberMe ? '#2563eb' : '#d1d5db', position: 'relative', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0 }}>
-                    <div style={{ position: 'absolute', top: '2px', left: rememberMe ? '20px' : '2px', width: '18px', height: '18px', borderRadius: '50%', backgroundColor: 'white', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                </>
+              ) : (
+                <>
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>{t.auth.email}</label>
+                    <div style={{ position: 'relative' }}>
+                      <input type="email" value={loginEmail}
+                        onChange={e => { setLoginEmail(e.target.value); setLoginDrop(true) }}
+                        onFocus={() => setLoginDrop(true)}
+                        onBlur={() => setTimeout(() => setLoginDrop(false), 150)}
+                        autoComplete="off"
+                        style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
+                        placeholder="email@example.com" onKeyDown={e => e.key === 'Enter' && handleLogin()} />
+                      {loginDrop && savedEmails.filter(e => e.toLowerCase().includes(loginEmail.toLowerCase())).length > 0 && (
+                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 50, marginTop: '4px', overflow: 'hidden' }}>
+                          {savedEmails.filter(e => e.toLowerCase().includes(loginEmail.toLowerCase())).map((e, i) => (
+                            <div key={i} onMouseDown={() => { setLoginEmail(e); setLoginDrop(false) }}
+                              style={{ padding: '0.75rem 1rem', cursor: 'pointer', fontSize: '0.9rem', color: '#111827', borderBottom: '1px solid #f3f4f6' }}
+                              onMouseOver={ev => (ev.currentTarget.style.backgroundColor = '#f8fafc')}
+                              onMouseOut={ev => (ev.currentTarget.style.backgroundColor = 'white')}>
+                              {e}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <span style={{ fontSize: '0.875rem', color: '#374151', fontWeight: '500' }}>{t.auth.remember}</span>
-                </label>
-              </div>
-              {error && <p style={{ color: '#ef4444', fontSize: '0.875rem', marginBottom: '1rem', textAlign: 'center' }}>{error}</p>}
-              <button onClick={handleLogin} disabled={loading}
-                style={{ width: '100%', backgroundColor: '#2563eb', color: 'white', padding: '0.875rem', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: '700', fontSize: '1rem', opacity: loading ? 0.5 : 1, boxShadow: '0 4px 15px rgba(37,99,235,0.35)' }}>
-                {loading ? t.booking.loading : t.auth.login_btn}
-              </button>
+                  <div style={{ marginBottom: '0.5rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>{t.auth.password}</label>
+                    <input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)}
+                      autoComplete="current-password"
+                      style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
+                      placeholder="••••••••" onKeyDown={e => e.key === 'Enter' && handleLogin()} />
+                  </div>
+                  <div style={{ textAlign: 'right', marginBottom: '1rem' }}>
+                    <button onClick={() => { setShowForgot(true); setError('') }}
+                      style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.8rem', cursor: 'pointer', padding: 0, fontWeight: '500' }}>
+                      {t.auth.forgot_link}
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', userSelect: 'none' }}>
+                      <div onClick={() => setRememberMe(!rememberMe)}
+                        style={{ width: '40px', height: '22px', borderRadius: '11px', backgroundColor: rememberMe ? '#2563eb' : '#d1d5db', position: 'relative', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0 }}>
+                        <div style={{ position: 'absolute', top: '2px', left: rememberMe ? '20px' : '2px', width: '18px', height: '18px', borderRadius: '50%', backgroundColor: 'white', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                      </div>
+                      <span style={{ fontSize: '0.875rem', color: '#374151', fontWeight: '500' }}>{t.auth.remember}</span>
+                    </label>
+                  </div>
+                  {error && <p style={{ color: '#ef4444', fontSize: '0.875rem', marginBottom: '1rem', textAlign: 'center' }}>{error}</p>}
+                  <button onClick={handleLogin} disabled={loading}
+                    style={{ width: '100%', backgroundColor: '#2563eb', color: 'white', padding: '0.875rem', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: '700', fontSize: '1rem', opacity: loading ? 0.5 : 1, boxShadow: '0 4px 15px rgba(37,99,235,0.35)' }}>
+                    {loading ? t.booking.loading : t.auth.login_btn}
+                  </button>
+                </>
+              )}
             </>}
 
             {/* REGISZTRÁCIÓ */}

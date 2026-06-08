@@ -60,5 +60,24 @@ export async function POST(request: Request) {
     is_owner: true,
   })
 
+  // Üdvözlő email küldése
+  if (userEmail) {
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://clericity.com'
+    try {
+      await fetch(`${siteUrl}/api/email/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          emailType: 'welcome',
+          to: userEmail,
+          customerName: fullName || companyName || 'Felhasználó',
+          businessName: tenant.slug,
+        }),
+      })
+    } catch (e) {
+      console.error('Üdvözlő email küldési hiba:', e)
+    }
+  }
+
   return NextResponse.json({ success: true })
 }
