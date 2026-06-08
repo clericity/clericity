@@ -79,7 +79,10 @@ export default function LandingPage() {
   const [showPersonalPassword, setShowPersonalPassword] = useState(false)
   const [showPersonalPasswordConfirm, setShowPersonalPasswordConfirm] = useState(false)
 
-  const validateTaxNumber = (tax: string) => /^\d{8}-\d-\d{2}$/.test(tax.trim())
+  const validateTaxNumber = (tax: string) => {
+    const t = tax.trim()
+    return /^\d{8}-\d-\d{2}$/.test(t) || /^\d{8}$/.test(t)
+  }
   const validatePhone = (phone: string) => /^\+?[0-9\s\-().]{7,20}$/.test(phone.trim())
   const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
   const validateAddress = (addr: string) => addr.trim().length >= 8 && /\d/.test(addr) && /[a-záéíóöőúüűA-ZÁÉÍÓÖŐÚÜŰ]/.test(addr)
@@ -570,7 +573,7 @@ export default function LandingPage() {
                     value={bizPhone}
                     onChange={e => { setBizPhone(e.target.value); setBizPhoneError('') }}
                     style={{ width: '100%', border: `1px solid ${bizPhoneError ? '#ef4444' : '#e5e7eb'}`, borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
-                    placeholder='+36 20 123 4567'
+                    placeholder={t.auth.phone_placeholder}
                   />
                   {bizPhoneError && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.3rem' }}>{bizPhoneError}</p>}
                 </div>
@@ -653,7 +656,7 @@ export default function LandingPage() {
                     value={personalPhone}
                     onChange={e => { setPersonalPhone(e.target.value); setPersonalPhoneError('') }}
                     style={{ width: '100%', border: `1px solid ${personalPhoneError ? '#ef4444' : '#e5e7eb'}`, borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
-                    placeholder='+36 20 123 4567'
+                    placeholder={t.auth.phone_placeholder}
                   />
                   {personalPhoneError && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.3rem' }}>{personalPhoneError}</p>}
                 </div>
