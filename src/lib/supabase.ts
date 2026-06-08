@@ -9,3 +9,17 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
   }
 })
+
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_OUT') {
+    // Stale token cleared — no action needed, UI reacts via TenantContext
+  }
+})
+
+if (typeof window !== 'undefined') {
+  supabase.auth.getSession().then(({ error }) => {
+    if (error?.message?.includes('Refresh Token')) {
+      supabase.auth.signOut()
+    }
+  })
+}

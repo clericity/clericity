@@ -70,11 +70,22 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     setLoading(false)
   }
 
- useEffect(() => {
-    const init = async () => {
-      await loadData()
-    }
-    init()
+  useEffect(() => {
+    loadData()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+        if (!session) {
+          setTenant(null)
+          setProfile(null)
+          setLoading(false)
+        } else {
+          await loadData()
+        }
+      }
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
   return (
