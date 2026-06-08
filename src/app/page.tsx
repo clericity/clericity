@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/hooks/useLanguage'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
-<meta name="google-site-verification" content="JN2f_kTDbQ6mkRrRora31qzk0CAIlWmSY4X7n8Pnk0g" />
+
 const ADMIN_EMAIL_KEY = 'CLERICITY_admin_emails'
 function getAdminEmails(): string[] {
   try { return JSON.parse(localStorage.getItem(ADMIN_EMAIL_KEY) || '[]') } catch { return [] }
