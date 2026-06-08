@@ -10,6 +10,10 @@ export async function POST(request: Request) {
   const now = new Date()
   const expiresAt = new Date(now); expiresAt.setDate(expiresAt.getDate() + 30)
 
+  // Email lekérése az auth rendszerből
+  const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId)
+  const userEmail = authUser?.user?.email || null
+
   const { data: tenant, error: tenantError } = await supabaseAdmin
     .from('tenants')
     .insert({
@@ -19,6 +23,7 @@ export async function POST(request: Request) {
       plan_activated_at: now.toISOString(),
       plan_expires_at: validPlan === 'free' ? null : expiresAt.toISOString(),
       registration_type: registrationType || 'personal',
+      ...(userEmail ? { email: userEmail } : {}),
       ...(isBusinessReg && taxNumber ? { tax_number: taxNumber } : {}),
       ...(address ? { address } : {}),
       ...(phone ? { phone } : {}),
@@ -47,12 +52,11 @@ export async function POST(request: Request) {
   }
 
   // Owner automatikus hozzáadása a staff táblához
-  const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId)
   await supabaseAdmin.from('staff').insert({
     tenant_id: tenant.id,
     user_id: userId,
     name: fullName || companyName || 'Tulajdonos',
-    email: authUser?.user?.email || null,
+    email: userEmail,
     is_owner: true,
   })
 

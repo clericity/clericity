@@ -144,7 +144,7 @@ function huSections(emailLink: React.ReactNode) {
     {
       title: '9. Irányadó jog',
       content: <>
-        <p>Jelen feltételekre a <strong>magyar jog</strong> az irányadó. Jogvita esetén a felek elsősorban tárgyalásos úton törekednek a megegyezésre. Ennek sikertelensége esetén a hatáskörrel és illetékességgel rendelkező magyar bíróság jár el.</p>
+        <p>Jelen feltételekre a <strong>szlovák jog</strong> az irányadó. Jogvita esetén a felek elsősorban tárgyalásos úton törekednek a megegyezésre. Ennek sikertelensége esetén a hatáskörrel és illetékességgel rendelkező <strong>szlovák bíróság</strong> jár el.</p>
       </>
     },
     {
@@ -240,7 +240,7 @@ function enSections(emailLink: React.ReactNode) {
     {
       title: '9. Governing Law',
       content: <>
-        <p>These terms are governed by <strong>Hungarian law</strong>. In case of a dispute, the parties shall first seek to resolve it through negotiation. If unsuccessful, the competent Hungarian court shall have jurisdiction.</p>
+        <p>These terms are governed by <strong>Slovak law</strong>. In case of a dispute, the parties shall first seek to resolve it through negotiation. If unsuccessful, the competent <strong>Slovak court</strong> shall have jurisdiction.</p>
       </>
     },
     {
@@ -336,7 +336,7 @@ function skSections(emailLink: React.ReactNode) {
     {
       title: '9. Rozhodné právo',
       content: <>
-        <p>Na tieto podmienky sa vzťahuje <strong>maďarské právo</strong>. V prípade sporu sa strany najprv pokúsia o vyriešenie rokovaním. V prípade neúspechu je príslušný maďarský súd.</p>
+        <p>Na tieto podmienky sa vzťahuje <strong>slovenské právo</strong>. V prípade sporu sa strany najprv pokúsia o vyriešenie rokovaním. V prípade neúspechu je príslušný <strong>slovenský súd</strong>.</p>
       </>
     },
     {

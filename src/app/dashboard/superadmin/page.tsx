@@ -25,6 +25,7 @@ interface Tenant {
   slug: string
   email: string | null
   phone: string | null
+  address: string | null
   plan: string
   plan_expires_at: string | null
   plan_activated_at: string | null
@@ -94,7 +95,7 @@ export default function SuperAdminPage() {
       // Fetch all tenants
       const { data: tenantData } = await supabase
         .from('tenants')
-        .select('id, name, slug, email, phone, plan, plan_expires_at, plan_activated_at, created_at')
+        .select('id, name, slug, email, phone, address, plan, plan_expires_at, plan_activated_at, created_at')
         .order('created_at', { ascending: false })
 
       // Fetch all staff
@@ -323,6 +324,7 @@ export default function SuperAdminPage() {
                       <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: 0 }}>🔗 {t.slug}</p>
                       {t.email && <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: 0 }}>📧 {t.email}</p>}
                       {t.phone && <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: 0 }}>📞 {t.phone}</p>}
+                      {t.address && <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: 0 }}>📍 {t.address}</p>}
                     </div>
                     <div style={{ display: 'flex', gap: isMobile ? '0.5rem' : '1.5rem', marginTop: '0.3rem', flexWrap: 'wrap' }}>
                       <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: 0 }}>👥 {t.staff_count} staff</p>

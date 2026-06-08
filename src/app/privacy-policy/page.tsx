@@ -138,7 +138,7 @@ function huSections(emailLink: React.ReactNode) {
           <li><strong>Tiltakozás joga</strong> — tiltakozhat az adatkezelés ellen</li>
         </ul>
         <p>Kérelmét az alábbi email címen nyújthatja be: {emailLink}</p>
-        <p>Panasszal a <strong>Nemzeti Adatvédelmi és Információszabadság Hatósághoz</strong> (NAIH) fordulhat: <a href="https://naih.hu" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }}>naih.hu</a></p>
+        <p>Panasszal a <strong>Szlovák Köztársaság Személyes Adatok Védelmi Irodájához</strong> (Úrad na ochranu osobných údajov SR) fordulhat: <a href="https://dataprotection.gov.sk" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }}>dataprotection.gov.sk</a></p>
       </>
     },
     {
@@ -241,7 +241,7 @@ function enSections(emailLink: React.ReactNode) {
           <li><strong>Right to object</strong> — you may object to the processing of your data</li>
         </ul>
         <p>Submit your request to: {emailLink}</p>
-        <p>You may also file a complaint with the <strong>National Authority for Data Protection and Freedom of Information</strong> (NAIH): <a href="https://naih.hu" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }}>naih.hu</a></p>
+        <p>You may also file a complaint with the <strong>Office for Personal Data Protection of the Slovak Republic</strong> (Úrad na ochranu osobných údajov SR): <a href="https://dataprotection.gov.sk" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }}>dataprotection.gov.sk</a></p>
       </>
     },
     {
