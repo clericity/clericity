@@ -8,7 +8,7 @@ export async function POST(request: Request) {
   // Foglalás lekérése token alapján
   const { data: booking, error: bookingError } = await supabaseAdmin
     .from('bookings')
-    .select('*, staff:staff_id(*), services(name), tenants(name)')
+    .select('*, staff:staff_id(*), services(name), tenants(name, google_refresh_token, google_calendar_id)')
     .eq('cancel_token', token)
     .single()
 
@@ -30,17 +30,35 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 })
   }
 
-  // Google Calendar esemény törlése (webhook már látja a 'cancelled' státuszt → kihagyja)
-  if (booking.google_event_id && booking.staff?.google_refresh_token && booking.staff?.google_calendar_id) {
+  // Google Calendar esemény törlése — ugyanolyan fallback logika mint create-nél
+  if (booking.google_event_id) {
     try {
-      const accessToken = await getGoogleAccessToken(booking.staff.google_refresh_token)
-      await fetch(
-        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(booking.staff.google_calendar_id)}/events/${booking.google_event_id}`,
-        {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${accessToken}` },
+      const staff = booking.staff as { google_refresh_token?: string; google_calendar_id?: string; is_owner?: boolean } | null
+      const tenant = booking.tenants as { google_refresh_token?: string; google_calendar_id?: string } | null
+
+      let refreshToken: string | null = null
+      let calendarId: string | null = null
+
+      if (staff?.google_refresh_token) {
+        refreshToken = staff.google_refresh_token
+        calendarId = staff.google_calendar_id ?? null
+      } else if (tenant?.google_refresh_token) {
+        refreshToken = tenant.google_refresh_token
+        calendarId = tenant.google_calendar_id ?? null
+      }
+
+      if (refreshToken && calendarId) {
+        const accessToken = await getGoogleAccessToken(refreshToken)
+        if (accessToken) {
+          await fetch(
+            `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${booking.google_event_id}`,
+            {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${accessToken}` },
+            }
+          )
         }
-      )
+      }
     } catch (e) {
       console.error('Google Calendar törlés hiba:', e)
     }
