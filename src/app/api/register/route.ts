@@ -15,7 +15,6 @@ export async function POST(request: Request) {
     .insert({
       name: tenantName,
       slug: userId,
-      is_active: true,
       plan: validPlan,
       plan_activated_at: now.toISOString(),
       plan_expires_at: validPlan === 'free' ? null : expiresAt.toISOString(),
