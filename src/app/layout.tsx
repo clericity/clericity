@@ -2,6 +2,10 @@
 import './globals.css'
 import CookieConsent from '@/components/CookieConsent'
 
+<head>
+ <meta name="google-site-verification" content="JN2f_kTDbQ6mkRrRora31qzk0CAIlWmSY4X7n8Pnk0g" />
+</head>
+
 export const metadata: Metadata = {
   title: 'CLERICITY',
   description: 'Online Foglalási Rendszer',
