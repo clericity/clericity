@@ -2,7 +2,7 @@ import { supabaseAdmin } from '@/lib/supabaseServer'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
-  const { userId, fullName, registrationType, companyName, taxNumber, address, plan } = await request.json()
+  const { userId, fullName, registrationType, companyName, taxNumber, address, phone, plan } = await request.json()
 
   const isBusinessReg = registrationType === 'business'
   const tenantName = isBusinessReg ? (companyName || 'Új vállalkozás') : (fullName || 'Új üzlet')
@@ -38,6 +38,7 @@ export async function POST(request: Request) {
       tenant_id: tenant.id,
       registration_type: registrationType || 'personal',
       ...(address && !isBusinessReg ? { address } : {}),
+      ...(phone ? { phone } : {}),
     })
 
   if (profileError) {

@@ -55,7 +55,12 @@ export default function LandingPage() {
   const [companyName, setCompanyName] = useState('')
   const [taxNumber, setTaxNumber] = useState('')
   const [companyAddress, setCompanyAddress] = useState('')
+  const [taxNumberError, setTaxNumberError] = useState('')
+  const [companyAddressError, setCompanyAddressError] = useState('')
+  const [bizPhone, setBizPhone] = useState('')
+  const [bizPhoneError, setBizPhoneError] = useState('')
   const [bizEmail, setBizEmail] = useState('')
+  const [bizEmailError, setBizEmailError] = useState('')
   const [bizPassword, setBizPassword] = useState('')
   const [bizPasswordConfirm, setBizPasswordConfirm] = useState('')
   const [showBizPassword, setShowBizPassword] = useState(false)
@@ -65,10 +70,19 @@ export default function LandingPage() {
   const [personalName, setPersonalName] = useState('')
   const [personalEmail, setPersonalEmail] = useState('')
   const [personalAddress, setPersonalAddress] = useState('')
+  const [personalAddressError, setPersonalAddressError] = useState('')
+  const [personalPhone, setPersonalPhone] = useState('')
+  const [personalPhoneError, setPersonalPhoneError] = useState('')
+  const [personalEmailError, setPersonalEmailError] = useState('')
   const [personalPassword, setPersonalPassword] = useState('')
   const [personalPasswordConfirm, setPersonalPasswordConfirm] = useState('')
   const [showPersonalPassword, setShowPersonalPassword] = useState(false)
   const [showPersonalPasswordConfirm, setShowPersonalPasswordConfirm] = useState(false)
+
+  const validateTaxNumber = (tax: string) => /^\d{8}-\d-\d{2}$/.test(tax.trim())
+  const validatePhone = (phone: string) => /^\+?[0-9\s\-().]{7,20}$/.test(phone.trim())
+  const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+  const validateAddress = (addr: string) => addr.trim().length >= 8 && /\d/.test(addr) && /[a-záéíóöőúüűA-ZÁÉÍÓÖŐÚÜŰ]/.test(addr)
 
   const handleLogin = async () => {
     setLoading(true)
@@ -97,8 +111,20 @@ export default function LandingPage() {
   }
 
   const handleRegisterBusiness = async () => {
-    if (!companyName || !taxNumber || !companyAddress || !bizEmail || !bizPassword || !bizPasswordConfirm) {
+    if (!companyName || !taxNumber || !companyAddress || !bizPhone || !bizEmail || !bizPassword || !bizPasswordConfirm) {
       setError(t.auth.required_fields); return
+    }
+    if (!validateTaxNumber(taxNumber)) {
+      setTaxNumberError(t.auth.tax_invalid); return
+    }
+    if (!validateAddress(companyAddress)) {
+      setCompanyAddressError(t.auth.address_invalid); return
+    }
+    if (!validateEmail(bizEmail)) {
+      setBizEmailError(t.auth.email_invalid); return
+    }
+    if (!validatePhone(bizPhone)) {
+      setBizPhoneError(t.auth.phone_invalid); return
     }
     if (bizPassword !== bizPasswordConfirm) {
       setError(t.auth.passwords_no_match); return
@@ -109,7 +135,7 @@ export default function LandingPage() {
     if (data.user) {
       const res = await fetch('/api/register', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: data.user.id, fullName: companyName, registrationType: 'business', companyName, taxNumber, address: companyAddress, plan: selectedPlan })
+        body: JSON.stringify({ userId: data.user.id, fullName: companyName, registrationType: 'business', companyName, taxNumber, address: companyAddress, phone: bizPhone, plan: selectedPlan })
       })
       const result = await res.json()
       if (result.error) setError(result.error)
@@ -119,8 +145,17 @@ export default function LandingPage() {
   }
 
   const handleRegisterPersonal = async () => {
-    if (!personalName || !personalEmail || !personalAddress || !personalPassword || !personalPasswordConfirm) {
+    if (!personalName || !personalEmail || !personalAddress || !personalPhone || !personalPassword || !personalPasswordConfirm) {
       setError(t.auth.required_fields); return
+    }
+    if (!validateAddress(personalAddress)) {
+      setPersonalAddressError(t.auth.address_invalid); return
+    }
+    if (!validateEmail(personalEmail)) {
+      setPersonalEmailError(t.auth.email_invalid); return
+    }
+    if (!validatePhone(personalPhone)) {
+      setPersonalPhoneError(t.auth.phone_invalid); return
     }
     if (personalPassword !== personalPasswordConfirm) {
       setError(t.auth.passwords_no_match); return
@@ -131,7 +166,7 @@ export default function LandingPage() {
     if (data.user) {
       const res = await fetch('/api/register', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: data.user.id, fullName: personalName, registrationType: 'personal', address: personalAddress, plan: selectedPlan })
+        body: JSON.stringify({ userId: data.user.id, fullName: personalName, registrationType: 'personal', address: personalAddress, phone: personalPhone, plan: selectedPlan })
       })
       const result = await res.json()
       if (result.error) setError(result.error)
@@ -486,8 +521,8 @@ export default function LandingPage() {
                 <p style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '1.25rem' }}>{t.auth.company_desc}</p>
                 {[
                   { label: t.auth.company_name, type: 'text', value: companyName, set: setCompanyName, placeholder: 'Kovács Barbershop Kft.' },
-                  { label: t.auth.tax_number, type: 'text', value: taxNumber, set: setTaxNumber, placeholder: '12345678-1-01' },
-                  { label: t.auth.address, type: 'text', value: companyAddress, set: setCompanyAddress, placeholder: '1234 Budapest, Fő utca 1.' },
+                  { label: t.auth.tax_number, type: 'text', value: taxNumber, set: setTaxNumber, placeholder: '12345678-1-01', isTax: true },
+                  { label: t.auth.address, type: 'text', value: companyAddress, set: setCompanyAddress, placeholder: '1234 Budapest, Fő utca 1.', isAddress: true },
                   { label: t.auth.email, type: 'email', value: bizEmail, set: setBizEmail, placeholder: 'info@valalkozas.hu' },
                 ].map(f => (
                   <div key={f.label} style={{ marginBottom: '1rem' }}>
@@ -495,10 +530,11 @@ export default function LandingPage() {
                     {f.type === 'email' ? (
                       <div style={{ position: 'relative' }}>
                         <input type="email" value={f.value} autoComplete="off"
-                          onChange={e => { f.set(e.target.value); setBizDrop(true) }}
+                          onChange={e => { f.set(e.target.value); setBizDrop(true); setBizEmailError('') }}
                           onFocus={() => setBizDrop(true)} onBlur={() => setTimeout(() => setBizDrop(false), 150)}
-                          style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
+                          style={{ width: '100%', border: `1px solid ${bizEmailError ? '#ef4444' : '#e5e7eb'}`, borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
                           placeholder={f.placeholder} />
+                        {bizEmailError && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.3rem' }}>{bizEmailError}</p>}
                         {bizDrop && savedEmails.filter(e => e.toLowerCase().includes(f.value.toLowerCase())).length > 0 && (
                           <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 50, marginTop: '4px', overflow: 'hidden' }}>
                             {savedEmails.filter(e => e.toLowerCase().includes(f.value.toLowerCase())).map((e, i) => (
@@ -511,12 +547,33 @@ export default function LandingPage() {
                         )}
                       </div>
                     ) : (
-                      <input type={f.type} value={f.value} onChange={e => f.set(e.target.value)}
-                        style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
-                        placeholder={f.placeholder} />
+                      <>
+                        <input type={f.type} value={f.value}
+                          onChange={e => {
+                            f.set(e.target.value)
+                            if ((f as { isAddress?: boolean }).isAddress) setCompanyAddressError('')
+                            if ((f as { isTax?: boolean }).isTax) setTaxNumberError('')
+                          }}
+                          style={{ width: '100%', border: `1px solid ${((f as { isAddress?: boolean }).isAddress && companyAddressError) || ((f as { isTax?: boolean }).isTax && taxNumberError) ? '#ef4444' : '#e5e7eb'}`, borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
+                          placeholder={f.placeholder} />
+                        {(f as { isAddress?: boolean }).isAddress && companyAddressError && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.3rem' }}>{companyAddressError}</p>}
+                        {(f as { isTax?: boolean }).isTax && taxNumberError && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.3rem' }}>{taxNumberError}</p>}
+                      </>
                     )}
                   </div>
                 ))}
+                {/* Telefonszám */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>{t.auth.phone}</label>
+                  <input
+                    type="tel"
+                    value={bizPhone}
+                    onChange={e => { setBizPhone(e.target.value); setBizPhoneError('') }}
+                    style={{ width: '100%', border: `1px solid ${bizPhoneError ? '#ef4444' : '#e5e7eb'}`, borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
+                    placeholder='+36 20 123 4567'
+                  />
+                  {bizPhoneError && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.3rem' }}>{bizPhoneError}</p>}
+                </div>
                 {/* Jelszó szemgombbal */}
                 {[
                   { label: t.auth.password + ' *', isConfirm: false, value: bizPassword, set: setBizPassword, show: showBizPassword, toggle: () => setShowBizPassword(v => !v) },
@@ -554,17 +611,18 @@ export default function LandingPage() {
                 {[
                   { label: t.auth.full_name, type: 'text', value: personalName, set: setPersonalName, placeholder: 'Kovács János' },
                   { label: t.auth.email, type: 'email', value: personalEmail, set: setPersonalEmail, placeholder: 'email@example.com' },
-                  { label: t.auth.personal_address, type: 'text', value: personalAddress, set: setPersonalAddress, placeholder: '1234 Budapest, Fő utca 1.' },
+                  { label: t.auth.personal_address, type: 'text', value: personalAddress, set: setPersonalAddress, placeholder: '1234 Budapest, Fő utca 1.', isAddress: true },
                 ].map(f => (
                   <div key={f.label} style={{ marginBottom: '1rem' }}>
                     <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>{f.label}</label>
                     {f.type === 'email' ? (
                       <div style={{ position: 'relative' }}>
                         <input type="email" value={f.value} autoComplete="off"
-                          onChange={e => { f.set(e.target.value); setPersonalDrop(true) }}
+                          onChange={e => { f.set(e.target.value); setPersonalDrop(true); setPersonalEmailError('') }}
                           onFocus={() => setPersonalDrop(true)} onBlur={() => setTimeout(() => setPersonalDrop(false), 150)}
-                          style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
+                          style={{ width: '100%', border: `1px solid ${personalEmailError ? '#ef4444' : '#e5e7eb'}`, borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
                           placeholder={f.placeholder} />
+                        {personalEmailError && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.3rem' }}>{personalEmailError}</p>}
                         {personalDrop && savedEmails.filter(e => e.toLowerCase().includes(f.value.toLowerCase())).length > 0 && (
                           <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 50, marginTop: '4px', overflow: 'hidden' }}>
                             {savedEmails.filter(e => e.toLowerCase().includes(f.value.toLowerCase())).map((e, i) => (
@@ -577,12 +635,28 @@ export default function LandingPage() {
                         )}
                       </div>
                     ) : (
-                      <input type={f.type} value={f.value} onChange={e => f.set(e.target.value)}
-                        style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
-                        placeholder={f.placeholder} />
+                      <>
+                        <input type={f.type} value={f.value}
+                          onChange={e => { f.set(e.target.value); if ((f as { isAddress?: boolean }).isAddress) setPersonalAddressError('') }}
+                          style={{ width: '100%', border: `1px solid ${(f as { isAddress?: boolean }).isAddress && personalAddressError ? '#ef4444' : '#e5e7eb'}`, borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
+                          placeholder={f.placeholder} />
+                        {(f as { isAddress?: boolean }).isAddress && personalAddressError && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.3rem' }}>{personalAddressError}</p>}
+                      </>
                     )}
                   </div>
                 ))}
+                {/* Telefonszám */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>{t.auth.phone}</label>
+                  <input
+                    type="tel"
+                    value={personalPhone}
+                    onChange={e => { setPersonalPhone(e.target.value); setPersonalPhoneError('') }}
+                    style={{ width: '100%', border: `1px solid ${personalPhoneError ? '#ef4444' : '#e5e7eb'}`, borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
+                    placeholder='+36 20 123 4567'
+                  />
+                  {personalPhoneError && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.3rem' }}>{personalPhoneError}</p>}
+                </div>
                 {/* Jelszó szemgombbal */}
                 {[
                   { label: t.auth.password + ' *', isConfirm: false, value: personalPassword, set: setPersonalPassword, show: showPersonalPassword, toggle: () => setShowPersonalPassword(v => !v) },

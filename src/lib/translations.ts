@@ -174,6 +174,11 @@ export const translations = {
       plan_pro: 'Pro csomag',
       plan_business: 'Business csomag',
       required_fields: 'Minden mező kitöltése kötelező',
+      tax_invalid: 'Érvénytelen adószám formátum (pl. 12345678-1-01)',
+      address_invalid: 'Érvénytelen cím (pl. 1234 Budapest, Fő utca 1.)',
+      email_invalid: 'Érvénytelen email cím',
+      phone: 'Telefonszám *',
+      phone_invalid: 'Érvénytelen telefonszám (pl. +36 20 123 4567)',
     },
     // Footer
     footer: {
@@ -656,6 +661,11 @@ export const translations = {
       plan_pro: 'Pro plan',
       plan_business: 'Business plan',
       required_fields: 'All fields are required',
+      tax_invalid: 'Invalid tax number format (e.g. 12345678-1-01)',
+      address_invalid: 'Invalid address (e.g. 1234 Budapest, Fő utca 1.)',
+      email_invalid: 'Invalid email address',
+      phone: 'Phone number *',
+      phone_invalid: 'Invalid phone number (e.g. +36 20 123 4567)',
     },
     footer: {
       privacy: 'Privacy Policy',
@@ -1134,6 +1144,11 @@ export const translations = {
       plan_pro: 'Pro plán',
       plan_business: 'Business plán',
       required_fields: 'Všetky polia sú povinné',
+      tax_invalid: 'Neplatný formát daňového čísla (napr. 12345678-1-01)',
+      address_invalid: 'Neplatná adresa (napr. 1234 Budapest, Hlavná 1.)',
+      email_invalid: 'Neplatná emailová adresa',
+      phone: 'Telefónne číslo *',
+      phone_invalid: 'Neplatné telefónne číslo (napr. +421 900 123 456)',
     },
     footer: {
       privacy: 'Ochrana osobných údajov',
