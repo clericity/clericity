@@ -11,7 +11,7 @@ import { useLanguage } from '@/hooks/useLanguage'
 
 interface Booking {
   id: string
-  staff_id: string | null
+  staff_id?: string | null
   customer_first_name: string
   customer_last_name: string
   customer_email: string
@@ -213,10 +213,10 @@ export default function BookingsPage() {
           // Teljes sor lekérése join-okkal (service + staff neve)
           const { data: full } = await supabase
             .from('bookings')
-            .select('id, customer_first_name, customer_last_name, customer_email, customer_phone, start_time, end_time, status, notes, google_event_id, services(name), staff(name)')
+            .select('id, staff_id, customer_first_name, customer_last_name, customer_email, customer_phone, start_time, end_time, status, notes, google_event_id, services(name), staff:staff_id(name)')
             .eq('id', b.id)
             .single()
-          if (full) setBookings(prev => [...prev, full])
+          if (full) setBookings(prev => [...prev, full as Booking])
           // Kliens lista frissítése
           const email = b.customer_email?.toLowerCase()
           if (!email) return
