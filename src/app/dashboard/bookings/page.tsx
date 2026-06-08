@@ -11,6 +11,7 @@ import { useLanguage } from '@/hooks/useLanguage'
 
 interface Booking {
   id: string
+  staff_id: string | null
   customer_first_name: string
   customer_last_name: string
   customer_email: string
@@ -22,6 +23,12 @@ interface Booking {
   google_event_id?: string | null
   services: { name: string }[] | null
   staff: { name: string }[] | null
+}
+
+interface StaffMember {
+  id: string
+  name: string
+  is_owner: boolean
 }
 
 interface Client {
@@ -65,6 +72,8 @@ export default function BookingsPage() {
   const [tab, setTab] = useState<Tab>('upcoming')
   const [tenantId, setTenantId] = useState<string | null>(null)
   const [ownerStaffId, setOwnerStaffId] = useState<string | null>(null)
+  const [staffList, setStaffList] = useState<StaffMember[]>([])
+  const [filterStaff, setFilterStaff] = useState<string>('all')
   const [plan, setPlan] = useState('free')
   const [isMobile, setIsMobile] = useState(false)
 
@@ -88,9 +97,9 @@ export default function BookingsPage() {
   const [clientSortField, setClientSortField] = useState<'name' | 'last_visit' | 'next_appointment'>('last_visit')
   const [clientSortDir, setClientSortDir] = useState<'asc' | 'desc'>('desc')
   const filterRef = useRef<HTMLDivElement | null>(null)
-  const isFilterActive = filterType !== 'all' || filterStatus !== 'all' || filterWaitStatus !== 'all' || clientFilterSource !== 'all' || clientFilterBlacklist !== 'all' || clientSortField !== 'last_visit' || clientSortDir !== 'desc'
+  const isFilterActive = filterType !== 'all' || filterStatus !== 'all' || filterWaitStatus !== 'all' || clientFilterSource !== 'all' || clientFilterBlacklist !== 'all' || clientSortField !== 'last_visit' || clientSortDir !== 'desc' || filterStaff !== 'all'
   useEffect(() => {
-    const reset = () => { setSelectedItems(new Set()); setTabSearch(''); setFilterType('all'); setFilterStatus('all'); setFilterWaitStatus('all'); setClientFilterSource('all'); setClientFilterBlacklist('all'); setClientSortField('last_visit'); setClientSortDir('desc') }
+    const reset = () => { setSelectedItems(new Set()); setTabSearch(''); setFilterType('all'); setFilterStatus('all'); setFilterWaitStatus('all'); setClientFilterSource('all'); setClientFilterBlacklist('all'); setClientSortField('last_visit'); setClientSortDir('desc'); setFilterStaff('all') }
     reset()
   }, [tab])
   useEffect(() => {
@@ -144,9 +153,9 @@ export default function BookingsPage() {
 
       const nowIso = new Date().toISOString()
       const lastMonthIso = new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString()
-      const sel = 'id, customer_first_name, customer_last_name, customer_email, customer_phone, start_time, end_time, status, notes, google_event_id, services(name), staff(name)'
+      const sel = 'id, staff_id, customer_first_name, customer_last_name, customer_email, customer_phone, start_time, end_time, status, notes, google_event_id, services(name), staff:staff_id(name)'
 
-      const [upcomingRes, pastRes, ownerRes, tenantRes, importedRes] = await Promise.all([
+      const [upcomingRes, pastRes, ownerRes, tenantRes, importedRes, staffRes] = await Promise.all([
         // Összes jövőbeli foglalás (limit nélkül)
         supabase.from('bookings').select(sel)
           .eq('tenant_id', profile.tenant_id)
@@ -165,6 +174,9 @@ export default function BookingsPage() {
           .select('email, first_name, last_name, phone, source, last_visit, imported_at, next_appointment')
           .eq('tenant_id', profile.tenant_id)
           .order('last_visit', { ascending: false, nullsFirst: false }),
+        supabase.from('staff').select('id, name, is_owner')
+          .eq('tenant_id', profile.tenant_id)
+          .order('is_owner', { ascending: false }),
       ])
 
       setBookings([...(upcomingRes.data || []), ...(pastRes.data || [])])
@@ -172,6 +184,7 @@ export default function BookingsPage() {
       setBookingsLoading(false)
       const ownerId = ownerRes.data?.id || null
       setOwnerStaffId(ownerId)
+      setStaffList(staffRes.data || [])
       if (ownerId) {
         const { data: bl } = await supabase.from('staff_blacklist').select('email').eq('staff_id', ownerId)
         setBlacklistedClientEmails(new Set((bl || []).map((b: { email: string }) => b.email.toLowerCase())))
@@ -246,12 +259,11 @@ export default function BookingsPage() {
   }, [waitlistLoaded, tenantId])
 
   const loadClients = useCallback(async () => {
-    if (clientsLoaded || !tenantId || !ownerStaffId) return
+    if (clientsLoaded || !tenantId) return
     const { data: bks } = await supabase
       .from('bookings')
       .select('customer_first_name, customer_last_name, customer_email, customer_phone, start_time, status')
       .eq('tenant_id', tenantId)
-      .eq('staff_id', ownerStaffId)
       .order('start_time', { ascending: false })
 
     const now = new Date()
@@ -274,7 +286,7 @@ export default function BookingsPage() {
     setClients(list)
     setFilteredClients(list)
     setClientsLoaded(true)
-  }, [clientsLoaded, tenantId, ownerStaffId])
+  }, [clientsLoaded, tenantId])
 
   const fetchImportedClients = useCallback(async () => {
     if (!tenantId) return
@@ -498,6 +510,7 @@ export default function BookingsPage() {
   const now = new Date()
   const filteredBookings = bookings.filter(b => {
     const start = new Date(b.start_time)
+    if (filterStaff !== 'all' && b.staff_id !== filterStaff) return false
     if (tab === 'upcoming') return start >= now && b.status === 'confirmed'
     if (tab === 'past') return start < now || b.status === 'cancelled'
     return true
@@ -624,6 +637,23 @@ export default function BookingsPage() {
             </button>
             {filterOpen && (
               <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)', border: '1px solid #e5e7eb', padding: '1rem', zIndex: 100, minWidth: '220px' }}>
+
+                {/* Munkás szűrő — közelgő/múlt/összes */}
+                {(tab === 'upcoming' || tab === 'past' || tab === 'all') && staffList.length > 1 && (
+                  <div style={{ marginBottom: '0.875rem' }}>
+                    <p style={{ fontSize: '0.72rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Munkatárs</p>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.3rem 0', cursor: 'pointer', fontSize: '0.875rem', color: '#374151' }}>
+                      <input type="radio" name="filterStaff" value="all" checked={filterStaff === 'all'} onChange={() => setFilterStaff('all')} style={{ accentColor: '#2563eb' }} />
+                      Összes
+                    </label>
+                    {staffList.map(s => (
+                      <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.3rem 0', cursor: 'pointer', fontSize: '0.875rem', color: '#374151' }}>
+                        <input type="radio" name="filterStaff" value={s.id} checked={filterStaff === s.id} onChange={() => setFilterStaff(s.id)} style={{ accentColor: '#2563eb' }} />
+                        {s.name}{s.is_owner ? ' (tulajdonos)' : ''}
+                      </label>
+                    ))}
+                  </div>
+                )}
 
                 {/* Típus szűrő — közelgő/múlt/összes */}
                 {(tab === 'upcoming' || tab === 'past' || tab === 'all') && (

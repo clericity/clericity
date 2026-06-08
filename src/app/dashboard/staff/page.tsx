@@ -19,6 +19,22 @@ interface Staff {
   is_owner?: boolean
   can_manage_schedule?: boolean
   can_manage_holidays?: boolean
+  is_active?: boolean
+  inactive_until?: string | null
+}
+
+const DURATION_PRESETS = [
+  { label: '1 nap',   days: 1 },
+  { label: '3 nap',   days: 3 },
+  { label: '1 hét',   days: 7 },
+  { label: '2 hét',   days: 14 },
+  { label: '1 hónap', days: 30 },
+]
+
+function isCurrentlyActive(s: Staff): boolean {
+  if (s.is_active !== false) return true
+  if (s.inactive_until && new Date(s.inactive_until) <= new Date()) return true
+  return false
 }
 
 export default function StaffPage() {
@@ -45,6 +61,12 @@ export default function StaffPage() {
   const [createdCredentials, setCreatedCredentials] = useState<{ name: string; email: string; password: string } | null>(null)
   const [error, setError] = useState('')
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null)
+  const [inactiveModal, setInactiveModal] = useState<{ staffId: string; staffName: string } | null>(null)
+  const [inactiveDays, setInactiveDays] = useState<number>(7)
+  const [useCustomDate, setUseCustomDate] = useState(false)
+  const [customInactiveDate, setCustomInactiveDate] = useState('')
+  const [indefinite, setIndefinite] = useState(false)
+  const [inactiveSaving, setInactiveSaving] = useState(false)
 
   useEffect(() => {
     const getData = async () => {
@@ -103,6 +125,35 @@ export default function StaffPage() {
   const handleTogglePermission = async (staffId: string, field: 'can_manage_schedule' | 'can_manage_holidays', value: boolean) => {
     await supabase.from('staff').update({ [field]: value }).eq('id', staffId)
     setStaffList(prev => prev.map(s => s.id === staffId ? { ...s, [field]: value } : s))
+  }
+
+  const handleActivate = async (staffId: string) => {
+    await supabase.from('staff').update({ is_active: true, inactive_until: null }).eq('id', staffId)
+    setStaffList(prev => prev.map(s => s.id === staffId ? { ...s, is_active: true, inactive_until: null } : s))
+  }
+
+  const handleDeactivate = async () => {
+    if (!inactiveModal) return
+    setInactiveSaving(true)
+    let inactiveUntil: string | null = null
+    if (!indefinite) {
+      if (useCustomDate && customInactiveDate) {
+        const d = new Date(customInactiveDate + 'T23:59:59')
+        inactiveUntil = d.toISOString()
+      } else {
+        const d = new Date()
+        d.setDate(d.getDate() + inactiveDays)
+        inactiveUntil = d.toISOString()
+      }
+    }
+    await supabase.from('staff').update({ is_active: false, inactive_until: inactiveUntil }).eq('id', inactiveModal.staffId)
+    setStaffList(prev => prev.map(s => s.id === inactiveModal.staffId ? { ...s, is_active: false, inactive_until: inactiveUntil } : s))
+    setInactiveSaving(false)
+    setInactiveModal(null)
+    setUseCustomDate(false)
+    setCustomInactiveDate('')
+    setIndefinite(false)
+    setInactiveDays(7)
   }
 
   const handleDelete = async (id: string) => {
@@ -288,11 +339,31 @@ export default function StaffPage() {
                           {t.dash.owner_label}
                         </span>
                       )}
+                      {!isCurrentlyActive(staff) && (
+                        <span style={{ backgroundColor: '#fee2e2', color: '#dc2626', fontSize: '0.72rem', fontWeight: '700', padding: '0.2rem 0.6rem', borderRadius: '999px', border: '1px solid #fca5a5' }}>
+                          🔴 Inaktív{staff.inactive_until ? ` – ${new Date(staff.inactive_until).toLocaleDateString('hu-HU', { month: 'short', day: 'numeric' })}-ig` : ''}
+                        </span>
+                      )}
                     </div>
                     <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: 0 }}>{staff.email || 'Nincs email'}</p>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, alignItems: 'center', flexWrap: isMobile ? 'wrap' : undefined }}>
+                  {isCurrentlyActive(staff) ? (
+                    <button
+                      onClick={() => { setInactiveModal({ staffId: staff.id, staffName: staff.name }); setIndefinite(false); setUseCustomDate(false); setCustomInactiveDate(''); setInactiveDays(7) }}
+                      style={{ backgroundColor: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '0.5rem 0.875rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600', whiteSpace: 'nowrap' }}
+                    >
+                      🟢 Aktív
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleActivate(staff.id)}
+                      style={{ backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '8px', padding: '0.5rem 0.875rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600', whiteSpace: 'nowrap' }}
+                    >
+                      🔴 Visszakapcsol
+                    </button>
+                  )}
                   <button
                     onClick={() => setSelectedStaff(staff)}
                     style={{ backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '0.5rem 1rem', cursor: 'pointer', fontSize: '0.875rem', fontWeight: '500', flex: isMobile ? 1 : undefined }}
@@ -360,6 +431,71 @@ export default function StaffPage() {
           ))
         )}
       </div>
+
+      {/* Inaktív beállítás modal */}
+      {inactiveModal && (
+        <div onClick={() => setInactiveModal(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: 'white', borderRadius: '16px', width: '100%', maxWidth: '400px', padding: '1.5rem', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#111827', marginBottom: '0.25rem' }}>Inaktív beállítás</h2>
+            <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.25rem' }}>{inactiveModal.staffName} nem jelenik meg a foglalási oldalon</p>
+
+            {/* Időtartam presets */}
+            {!indefinite && !useCustomDate && (
+              <div style={{ marginBottom: '1rem' }}>
+                <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Mennyi ideig?</p>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {DURATION_PRESETS.map(p => (
+                    <button key={p.days} onClick={() => setInactiveDays(p.days)}
+                      style={{ padding: '0.4rem 0.875rem', borderRadius: '8px', border: '2px solid', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer',
+                        borderColor: inactiveDays === p.days ? '#2563eb' : '#e5e7eb',
+                        backgroundColor: inactiveDays === p.days ? '#eff6ff' : 'white',
+                        color: inactiveDays === p.days ? '#2563eb' : '#374151' }}>
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Saját dátum */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', cursor: 'pointer', fontSize: '0.875rem', color: '#374151' }}>
+              <input type="checkbox" checked={useCustomDate} onChange={e => { setUseCustomDate(e.target.checked); if (e.target.checked) setIndefinite(false) }} style={{ accentColor: '#2563eb' }} />
+              Saját dátum megadása
+            </label>
+            {useCustomDate && (
+              <input type="date" value={customInactiveDate} onChange={e => setCustomInactiveDate(e.target.value)}
+                min={new Date().toISOString().slice(0, 10)}
+                style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0.5rem 0.75rem', fontSize: '0.875rem', marginBottom: '0.75rem', boxSizing: 'border-box' }} />
+            )}
+
+            {/* Határozatlan ideig */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', cursor: 'pointer', fontSize: '0.875rem', color: '#374151' }}>
+              <input type="checkbox" checked={indefinite} onChange={e => { setIndefinite(e.target.checked); if (e.target.checked) setUseCustomDate(false) }} style={{ accentColor: '#2563eb' }} />
+              Határozatlan ideig inaktív
+            </label>
+
+            {/* Előnézet */}
+            <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', padding: '0.75rem', marginBottom: '1.25rem', fontSize: '0.85rem', color: '#dc2626' }}>
+              {indefinite
+                ? '🔴 Inaktív marad, amíg manuálisan vissza nem kapcsolod'
+                : useCustomDate && customInactiveDate
+                  ? `🔴 Inaktív lesz: ${new Date(customInactiveDate + 'T00:00:00').toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' })}-ig`
+                  : `🔴 Inaktív lesz: ${new Date(Date.now() + inactiveDays * 86400000).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' })}-ig`
+              }
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button onClick={() => setInactiveModal(null)} style={{ flex: 1, padding: '0.75rem', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: 'white', color: '#374151', cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem' }}>
+                Mégse
+              </button>
+              <button onClick={handleDeactivate} disabled={inactiveSaving || (useCustomDate && !customInactiveDate)}
+                style={{ flex: 1, padding: '0.75rem', border: 'none', borderRadius: '8px', backgroundColor: '#dc2626', color: 'white', cursor: 'pointer', fontWeight: '700', fontSize: '0.875rem', opacity: (inactiveSaving || (useCustomDate && !customInactiveDate)) ? 0.5 : 1 }}>
+                {inactiveSaving ? 'Mentés...' : 'Inaktiválás'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Profil modal */}
       {selectedStaff && (

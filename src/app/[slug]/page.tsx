@@ -72,7 +72,7 @@ export default function BookingPage() {
       setHolidayDates((holidayData || []).map((h: Record<string, string>) => h.date))
       setPartialHolidayDates((holidayData || []).filter((h: Record<string, string | null>) => h.start_time !== null).map((h: Record<string, string>) => h.date))
 
-      const { data: staffData } = await supabase.from('staff').select('id, name, profile_photo, bio').eq('tenant_id', tenantData.id).order('is_owner', { ascending: false })
+      const { data: staffData } = await supabase.from('staff').select('id, name, profile_photo, bio').eq('tenant_id', tenantData.id).or(`is_active.eq.true,inactive_until.lte.${new Date().toISOString()}`).order('is_owner', { ascending: false })
       const loaded = (staffData || []).map((s: Record<string, string>) => ({ id: s.id, name: s.name, profile_photo: s.profile_photo || null, bio: s.bio || null }))
       setStaffList(loaded)
       if (loaded.length === 1) setSelectedStaff(loaded[0])
