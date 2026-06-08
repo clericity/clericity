@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
+
+const cleanPhone = (phone: string | null | undefined) => (phone || '').replace(/^'+/, '').trim()
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -1038,7 +1040,7 @@ export function ClientList({ filtered, search, setSearch, exportCSV, onImportCli
                   </p>
                   {/* Telefon */}
                   {client.phone && <p style={{ fontSize: '0.78rem', margin: '0 0 0.3rem' }}>
-                    <a href={`tel:${client.phone}`} style={{ color: '#2563eb', textDecoration: 'none' }} title="Hívás">📞 {client.phone}</a>
+                    <a href={`tel:${cleanPhone(client.phone)}`} style={{ color: '#2563eb', textDecoration: 'none' }} title="Hívás">📞 {cleanPhone(client.phone)}</a>
                   </p>}
                   {/* Dátumok */}
                   <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
@@ -1114,7 +1116,7 @@ export function ClientList({ filtered, search, setSearch, exportCSV, onImportCli
                 /* Telefon */
                 <div key={`ph-${client.email}`} style={{ padding: '0.55rem 0.875rem', backgroundColor: bg, borderBottom: hBorder, borderRight: vBorder, display: 'flex', alignItems: 'center' }}>
                   {client.phone
-                    ? <a href={`tel:${client.phone}`} style={{ color: '#2563eb', textDecoration: 'none', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }} title="Hívás">{client.phone}</a>
+                    ? <a href={`tel:${cleanPhone(client.phone)}`} style={{ color: '#2563eb', textDecoration: 'none', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }} title="Hívás">{cleanPhone(client.phone)}</a>
                     : <p style={{ color: '#d1d5db', margin: 0, fontSize: '0.8rem' }}>—</p>
                   }
                 </div>,
