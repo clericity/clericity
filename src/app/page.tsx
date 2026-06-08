@@ -53,6 +53,7 @@ export default function LandingPage() {
 
   // Cégként regisztráció
   const [companyName, setCompanyName] = useState('')
+  const [companyNameError, setCompanyNameError] = useState('')
   const [taxNumber, setTaxNumber] = useState('')
   const [companyAddress, setCompanyAddress] = useState('')
   const [taxNumberError, setTaxNumberError] = useState('')
@@ -68,6 +69,7 @@ export default function LandingPage() {
 
   // Magánszemélyként regisztráció
   const [personalName, setPersonalName] = useState('')
+  const [personalNameError, setPersonalNameError] = useState('')
   const [personalEmail, setPersonalEmail] = useState('')
   const [personalAddress, setPersonalAddress] = useState('')
   const [personalAddressError, setPersonalAddressError] = useState('')
@@ -79,12 +81,17 @@ export default function LandingPage() {
   const [showPersonalPassword, setShowPersonalPassword] = useState(false)
   const [showPersonalPasswordConfirm, setShowPersonalPasswordConfirm] = useState(false)
 
+  const validateFullName = (name: string) => {
+    const parts = name.trim().split(/\s+/).filter(Boolean)
+    if (parts.length < 2) return false
+    return parts.every(p => p.length >= 2 && /^[a-záéíóöőúüűA-ZÁÉÍÓÖŐÚÜŰČŠŽĎŇŔĽĹŤČŠŽĎŇŔĽĹŤ'-]+$/i.test(p))
+  }
   const validateTaxNumber = (tax: string) => {
     const t = tax.trim()
     return /^\d{8}-\d-\d{2}$/.test(t) || /^\d{8}$/.test(t)
   }
   const validatePhone = (phone: string) => /^\+?[0-9\s\-().]{7,20}$/.test(phone.trim())
-  const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+  const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.(hu|com|sk)$/i.test(email.trim())
   const validateAddress = (addr: string) => addr.trim().length >= 8 && /\d/.test(addr) && /[a-záéíóöőúüűA-ZÁÉÍÓÖŐÚÜŰ]/.test(addr)
 
   const handleLogin = async () => {
@@ -116,6 +123,9 @@ export default function LandingPage() {
   const handleRegisterBusiness = async () => {
     if (!companyName || !taxNumber || !companyAddress || !bizPhone || !bizEmail || !bizPassword || !bizPasswordConfirm) {
       setError(t.auth.required_fields); return
+    }
+    if (!validateFullName(companyName)) {
+      setCompanyNameError(t.auth.name_invalid); return
     }
     if (!validateTaxNumber(taxNumber)) {
       setTaxNumberError(t.auth.tax_invalid); return
@@ -150,6 +160,9 @@ export default function LandingPage() {
   const handleRegisterPersonal = async () => {
     if (!personalName || !personalEmail || !personalAddress || !personalPhone || !personalPassword || !personalPasswordConfirm) {
       setError(t.auth.required_fields); return
+    }
+    if (!validateFullName(personalName)) {
+      setPersonalNameError(t.auth.name_invalid); return
     }
     if (!validateAddress(personalAddress)) {
       setPersonalAddressError(t.auth.address_invalid); return
@@ -523,7 +536,7 @@ export default function LandingPage() {
               {regType === 'business' && <>
                 <p style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '1.25rem' }}>{t.auth.company_desc}</p>
                 {[
-                  { label: t.auth.company_name, type: 'text', value: companyName, set: setCompanyName, placeholder: 'Kovács Barbershop Kft.' },
+                  { label: t.auth.company_name, type: 'text', value: companyName, set: setCompanyName, placeholder: 'Kovács Barbershop Kft.', isName: true },
                   { label: t.auth.tax_number, type: 'text', value: taxNumber, set: setTaxNumber, placeholder: '12345678-1-01', isTax: true },
                   { label: t.auth.address, type: 'text', value: companyAddress, set: setCompanyAddress, placeholder: '1234 Budapest, Fő utca 1.', isAddress: true },
                   { label: t.auth.email, type: 'email', value: bizEmail, set: setBizEmail, placeholder: 'info@valalkozas.hu' },
@@ -556,11 +569,13 @@ export default function LandingPage() {
                             f.set(e.target.value)
                             if ((f as { isAddress?: boolean }).isAddress) setCompanyAddressError('')
                             if ((f as { isTax?: boolean }).isTax) setTaxNumberError('')
+                            if ((f as { isName?: boolean }).isName) setCompanyNameError('')
                           }}
-                          style={{ width: '100%', border: `1px solid ${((f as { isAddress?: boolean }).isAddress && companyAddressError) || ((f as { isTax?: boolean }).isTax && taxNumberError) ? '#ef4444' : '#e5e7eb'}`, borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
+                          style={{ width: '100%', border: `1px solid ${((f as { isAddress?: boolean }).isAddress && companyAddressError) || ((f as { isTax?: boolean }).isTax && taxNumberError) || ((f as { isName?: boolean }).isName && companyNameError) ? '#ef4444' : '#e5e7eb'}`, borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
                           placeholder={f.placeholder} />
                         {(f as { isAddress?: boolean }).isAddress && companyAddressError && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.3rem' }}>{companyAddressError}</p>}
                         {(f as { isTax?: boolean }).isTax && taxNumberError && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.3rem' }}>{taxNumberError}</p>}
+                        {(f as { isName?: boolean }).isName && companyNameError && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.3rem' }}>{companyNameError}</p>}
                       </>
                     )}
                   </div>
@@ -612,7 +627,7 @@ export default function LandingPage() {
               {regType === 'personal' && <>
                 <p style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '1.25rem' }}>{t.auth.personal_desc}</p>
                 {[
-                  { label: t.auth.full_name, type: 'text', value: personalName, set: setPersonalName, placeholder: 'Kovács János' },
+                  { label: t.auth.full_name, type: 'text', value: personalName, set: setPersonalName, placeholder: 'Kovács János', isName: true },
                   { label: t.auth.email, type: 'email', value: personalEmail, set: setPersonalEmail, placeholder: 'email@example.com' },
                   { label: t.auth.personal_address, type: 'text', value: personalAddress, set: setPersonalAddress, placeholder: '1234 Budapest, Fő utca 1.', isAddress: true },
                 ].map(f => (
@@ -640,10 +655,15 @@ export default function LandingPage() {
                     ) : (
                       <>
                         <input type={f.type} value={f.value}
-                          onChange={e => { f.set(e.target.value); if ((f as { isAddress?: boolean }).isAddress) setPersonalAddressError('') }}
-                          style={{ width: '100%', border: `1px solid ${(f as { isAddress?: boolean }).isAddress && personalAddressError ? '#ef4444' : '#e5e7eb'}`, borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
+                          onChange={e => {
+                            f.set(e.target.value)
+                            if ((f as { isAddress?: boolean }).isAddress) setPersonalAddressError('')
+                            if ((f as { isName?: boolean }).isName) setPersonalNameError('')
+                          }}
+                          style={{ width: '100%', border: `1px solid ${((f as { isAddress?: boolean }).isAddress && personalAddressError) || ((f as { isName?: boolean }).isName && personalNameError) ? '#ef4444' : '#e5e7eb'}`, borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
                           placeholder={f.placeholder} />
                         {(f as { isAddress?: boolean }).isAddress && personalAddressError && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.3rem' }}>{personalAddressError}</p>}
+                        {(f as { isName?: boolean }).isName && personalNameError && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.3rem' }}>{personalNameError}</p>}
                       </>
                     )}
                   </div>

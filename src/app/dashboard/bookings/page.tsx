@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
+
+const cleanPhone = (phone: string | null | undefined) => (phone || '').replace(/^'+/, '').trim()
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { ClientList, ImportModal } from '@/app/dashboard/clients/page'
@@ -783,7 +785,7 @@ export default function BookingsPage() {
                     {booking.services?.[0] && <p style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '0.2rem' }}>✂️ {booking.services[0].name}{booking.staff?.[0] && ` · 👤 ${booking.staff[0].name}`}</p>}
                     <p style={{ fontSize: '0.85rem', color: '#6b7280', margin: 0 }}>
                       <a href={`mailto:${booking.customer_email}`} style={{ color: '#2563eb', textDecoration: 'none' }} title="Email küldése">📧 {booking.customer_email}</a>
-                      {booking.customer_phone && <> · <a href={`tel:${booking.customer_phone}`} style={{ color: '#2563eb', textDecoration: 'none' }} title="Hívás">📞 {booking.customer_phone}</a></>}
+                      {booking.customer_phone && <> · <a href={`tel:${cleanPhone(booking.customer_phone)}`} style={{ color: '#2563eb', textDecoration: 'none' }} title="Hívás">📞 {cleanPhone(booking.customer_phone)}</a></>}
                     </p>
                     {booking.notes && <p style={{ fontSize: '0.8rem', color: '#374151', marginTop: '0.25rem', backgroundColor: '#fffbeb', padding: '0.3rem 0.625rem', borderRadius: '6px', border: '1px solid #fde68a', display: 'inline-block' }}>💬 {booking.notes}</p>}
                   </div>
@@ -802,7 +804,7 @@ export default function BookingsPage() {
                   <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '100px', backgroundColor: '#ede9fe', color: '#7c3aed', fontWeight: '700' }}>📥 {client.import_source && client.import_source !== 'Általános' ? client.import_source : 'Importált'}</span>
                 </div>
                 <p style={{ fontSize: '0.875rem', color: '#374151', marginBottom: '0.25rem' }}>📅 {formatDate(client.next_appointment!)} · {formatTime(client.next_appointment!)}</p>
-                <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>📧 {client.email}{client.phone ? ` · 📞 ${client.phone}` : ''}</p>
+                <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>📧 {client.email}{client.phone ? ` · 📞 ${cleanPhone(client.phone)}` : ''}</p>
               </div>
             </div>
           )
@@ -827,7 +829,7 @@ export default function BookingsPage() {
                   </div>
                   <p style={{ fontSize: '0.85rem', color: '#374151', marginBottom: '0.2rem' }}>📅 {formatDate(booking.start_time)} · {formatTime(booking.start_time)} — {formatTime(booking.end_time)}</p>
                   {booking.services?.[0] && <p style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '0.2rem' }}>✂️ {booking.services[0].name}{booking.staff?.[0] && ` · 👤 ${booking.staff[0].name}`}</p>}
-                  <p style={{ fontSize: '0.85rem', color: '#6b7280', margin: 0 }}>📧 {booking.customer_email}{booking.customer_phone ? ` · 📞 ${booking.customer_phone}` : ''}</p>
+                  <p style={{ fontSize: '0.85rem', color: '#6b7280', margin: 0 }}>📧 {booking.customer_email}{booking.customer_phone ? ` · 📞 ${cleanPhone(booking.customer_phone)}` : ''}</p>
                   {booking.notes && <p style={{ fontSize: '0.8rem', color: '#374151', marginTop: '0.25rem', backgroundColor: '#fffbeb', padding: '0.3rem 0.625rem', borderRadius: '6px', border: '1px solid #fde68a', display: 'inline-block' }}>💬 {booking.notes}</p>}
                 </div>
               </div>
@@ -843,7 +845,7 @@ export default function BookingsPage() {
                   <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '100px', backgroundColor: '#ede9fe', color: '#7c3aed', fontWeight: '700' }}>📥 {client.import_source && client.import_source !== 'Általános' ? client.import_source : 'Importált'}</span>
                 </div>
                 <p style={{ fontSize: '0.875rem', color: '#374151', marginBottom: '0.25rem' }}>🕐 {(() => { const pt = importedPastTime(client); if (!pt) return ''; const d = new Date(pt).toISOString(); return `${formatDate(d)} · ${formatTime(d)}`; })()}</p>
-                <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>📧 {client.email}{client.phone ? ` · 📞 ${client.phone}` : ''}</p>
+                <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>📧 {client.email}{client.phone ? ` · 📞 ${cleanPhone(client.phone)}` : ''}</p>
               </div>
             </div>
           )
@@ -1034,7 +1036,7 @@ export default function BookingsPage() {
                         </p>
                         <p style={{ color: '#374151', margin: 0, fontSize: '0.8rem', wordBreak: 'break-all' }}>
                           <a href={`mailto:${entry.customer_email}`} style={{ color: '#2563eb', textDecoration: 'none' }} title="Email küldése">{entry.customer_email}</a>
-                          {entry.customer_phone && <> · <a href={`tel:${entry.customer_phone}`} style={{ color: '#2563eb', textDecoration: 'none' }} title="Hívás">📞 {entry.customer_phone}</a></>}
+                          {entry.customer_phone && <> · <a href={`tel:${cleanPhone(entry.customer_phone)}`} style={{ color: '#2563eb', textDecoration: 'none' }} title="Hívás">📞 {cleanPhone(entry.customer_phone)}</a></>}
                         </p>
                         <p style={{ color: '#6b7280', margin: 0, fontSize: '0.8rem' }}>
                           {(entry.services as { name: string } | null)?.name || '—'}

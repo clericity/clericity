@@ -162,14 +162,14 @@ export default function SettingsPage() {
     const run = async () => {
       const [tenantRes, profileRes, statusRes] = await Promise.all([
         supabase.from('tenants').select('*').eq('id', tenantId).single(),
-        supabase.from('profiles').select('full_name, address').eq('id', userId).single(),
+        supabase.from('profiles').select('full_name, address, phone').eq('id', userId).single(),
         fetch(`/api/google/status?tenantId=${tenantId}`),
       ])
       const tenantData = tenantRes.data
       if (tenantData) {
         setName(tenantData.name || '')
         setDescription(tenantData.description || '')
-        setPhone(tenantData.phone || '')
+        setPhone(tenantData.phone || profileRes.data?.phone || '')
         setCountry(tenantData.country || 'HU')
         setLogoUrl(tenantData.logo_url || '')
         setLogoPreview(tenantData.logo_url || '')

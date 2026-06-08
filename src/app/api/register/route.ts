@@ -21,6 +21,7 @@ export async function POST(request: Request) {
       registration_type: registrationType || 'personal',
       ...(isBusinessReg && taxNumber ? { tax_number: taxNumber } : {}),
       ...(address ? { address } : {}),
+      ...(phone ? { phone } : {}),
     })
     .select()
     .single()
