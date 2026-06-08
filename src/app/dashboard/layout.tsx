@@ -13,6 +13,8 @@ interface Profile {
   tenant_id: string
 }
 
+const SUPER_ADMIN_EMAIL = 'clericity.booking@gmail.com'
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -22,6 +24,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [subscriptionStatus, setSubscriptionStatus] = useState<'active' | 'grace' | 'expired' | 'free'>('free')
   const [daysLeft, setDaysLeft] = useState<number | null>(null)
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
@@ -47,6 +50,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return
       }
       setProfile(data)
+      if (data?.role === 'super_admin' && user.email === SUPER_ADMIN_EMAIL) {
+        setIsSuperAdmin(true)
+      }
 
       if (data?.tenant_id) {
         const { data: tenant } = await supabase
@@ -89,6 +95,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { id: 'bookings', label: `📅 ${t.dash.menu_bookings}`, path: '/dashboard/bookings' },
     { id: 'billing', label: `💳 ${t.dash.tab_billing}`, path: '/dashboard/billing' },
     { id: 'qrcode', label: `📱 ${t.dash.menu_qrcode}`, path: '/dashboard/qrcode' },
+    ...(isSuperAdmin ? [{ id: 'superadmin', label: '🛡️ Super Admin', path: '/dashboard/superadmin' }] : []),
   ]
 
   const sidebarContent = (
@@ -101,20 +108,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       <nav style={{ flex: 1, padding: '1rem', overflowY: 'auto' }}>
         {menuItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => { setSidebarOpen(false); router.push(item.path) }}
-            style={{
-              display: 'block', width: '100%', textAlign: 'left',
-              padding: '0.75rem 1rem', borderRadius: '8px', border: 'none',
-              cursor: 'pointer', marginBottom: '0.25rem',
-              backgroundColor: pathname === item.path ? '#3b82f6' : 'transparent',
-              color: pathname === item.path ? 'white' : '#94a3b8',
-              fontSize: '0.875rem',
-            }}
-          >
-            {item.label}
-          </button>
+          <div key={item.id}>
+            {item.id === 'superadmin' && (
+              <div style={{ borderTop: '1px solid #334155', margin: '0.5rem 0' }} />
+            )}
+            <button
+              onClick={() => { setSidebarOpen(false); router.push(item.path) }}
+              style={{
+                display: 'block', width: '100%', textAlign: 'left',
+                padding: '0.75rem 1rem', borderRadius: '8px', border: 'none',
+                cursor: 'pointer', marginBottom: '0.25rem',
+                backgroundColor: pathname === item.path ? (item.id === 'superadmin' ? '#7c3aed' : '#3b82f6') : 'transparent',
+                color: pathname === item.path ? 'white' : (item.id === 'superadmin' ? '#c4b5fd' : '#94a3b8'),
+                fontSize: '0.875rem',
+                fontWeight: item.id === 'superadmin' ? '700' : '400',
+              }}
+            >
+              {item.label}
+            </button>
+          </div>
         ))}
       </nav>
 
@@ -183,7 +195,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )}
 
         {/* Lejárt előfizetés — lock screen */}
-        {subscriptionStatus === 'expired' && !pathname.startsWith('/dashboard/settings') ? (
+        {subscriptionStatus === 'expired' && !pathname.startsWith('/dashboard/settings') && !pathname.startsWith('/dashboard/superadmin') ? (
           <div style={{ position: 'fixed', inset: 0, zIndex: 500, backgroundColor: 'rgba(15,23,42,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
             <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '2.5rem 2rem', maxWidth: '460px', width: '100%', textAlign: 'center', boxShadow: '0 24px 64px rgba(0,0,0,0.4)' }}>
               <div style={{ width: '72px', height: '72px', borderRadius: '50%', backgroundColor: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', fontSize: '2rem' }}>🔒</div>
