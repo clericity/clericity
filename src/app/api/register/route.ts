@@ -1,12 +1,33 @@
 import { supabaseAdmin } from '@/lib/supabaseServer'
 import { NextResponse } from 'next/server'
+import { getIP, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit'
+import { sanitizeText, sanitizePhone, isValidUUID } from '@/lib/validate'
+
+const VALID_PLANS = ['free', 'basic', 'pro', 'business']
+const VALID_REG_TYPES = ['personal', 'business']
 
 export async function POST(request: Request) {
-  const { userId, fullName, registrationType, companyName, taxNumber, address, phone, plan } = await request.json()
+  if (!checkRateLimit(getIP(request), 'register', 5, 60 * 60 * 1000)) {
+    return rateLimitResponse()
+  }
 
-  const isBusinessReg = registrationType === 'business'
+  const body = await request.json()
+  const { userId, plan, registrationType } = body
+
+  if (!isValidUUID(userId)) {
+    return NextResponse.json({ error: 'Érvénytelen kérés.' }, { status: 400 })
+  }
+
+  const fullName = sanitizeText(body.fullName, 100)
+  const companyName = sanitizeText(body.companyName, 200)
+  const taxNumber = sanitizeText(body.taxNumber, 50).replace(/[^0-9\-]/g, '')
+  const address = sanitizeText(body.address, 300)
+  const phone = sanitizePhone(body.phone)
+  const validPlan = VALID_PLANS.includes(plan) ? plan : 'free'
+  const validRegType = VALID_REG_TYPES.includes(registrationType) ? registrationType : 'personal'
+
+  const isBusinessReg = validRegType === 'business'
   const tenantName = isBusinessReg ? (companyName || 'Új vállalkozás') : (fullName || 'Új üzlet')
-  const validPlan = ['free', 'basic', 'pro', 'business'].includes(plan) ? plan : 'free'
   const now = new Date()
   const expiresAt = new Date(now); expiresAt.setDate(expiresAt.getDate() + 30)
 
@@ -22,7 +43,7 @@ export async function POST(request: Request) {
       plan: validPlan,
       plan_activated_at: now.toISOString(),
       plan_expires_at: validPlan === 'free' ? null : expiresAt.toISOString(),
-      registration_type: registrationType || 'personal',
+      registration_type: validRegType,
       ...(userEmail ? { email: userEmail } : {}),
       ...(isBusinessReg && taxNumber ? { tax_number: taxNumber } : {}),
       ...(address ? { address } : {}),
@@ -42,7 +63,7 @@ export async function POST(request: Request) {
       full_name: fullName || companyName || 'Felhasználó',
       role: 'tenant_admin',
       tenant_id: tenant.id,
-      registration_type: registrationType || 'personal',
+      registration_type: validRegType,
       ...(address && !isBusinessReg ? { address } : {}),
       ...(phone ? { phone } : {}),
     })

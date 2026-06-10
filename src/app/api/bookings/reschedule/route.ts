@@ -1,9 +1,26 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseServer'
 import { getGoogleAccessToken } from '@/lib/googleAuth'
+import { getIP, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit'
+import { isValidUUID, isValidDate, isValidTime } from '@/lib/validate'
 
 export async function POST(request: Request) {
+  if (!checkRateLimit(getIP(request), 'bookings/reschedule', 10, 10 * 60 * 1000)) {
+    return rateLimitResponse()
+  }
+
   const { token, date, slot, duration } = await request.json()
+
+  if (!isValidUUID(token)) {
+    return NextResponse.json({ error: 'Érvénytelen token.' }, { status: 400 })
+  }
+  if (!isValidDate(date) || !isValidTime(slot)) {
+    return NextResponse.json({ error: 'Érvénytelen dátum vagy időpont.' }, { status: 400 })
+  }
+  const parsedDuration = Number(duration)
+  if (!Number.isInteger(parsedDuration) || parsedDuration < 5 || parsedDuration > 480) {
+    return NextResponse.json({ error: 'Érvénytelen időtartam.' }, { status: 400 })
+  }
 
   // Foglalás lekérése token alapján
   const { data: booking, error: bookingError } = await supabaseAdmin

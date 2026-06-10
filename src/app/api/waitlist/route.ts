@@ -1,14 +1,36 @@
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { supabaseAdmin } from '@/lib/supabaseServer'
+import { getIP, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit'
+import { sanitizeText, sanitizeEmail, sanitizePhone, isValidUUID } from '@/lib/validate'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(request: Request) {
-  const { tenantId, staffId, serviceId, firstName, lastName, email, phone } = await request.json()
+  if (!checkRateLimit(getIP(request), 'waitlist', 5, 60 * 60 * 1000)) {
+    return rateLimitResponse()
+  }
 
-  if (!tenantId || !email) {
-    return NextResponse.json({ error: 'Hiányzó adatok' }, { status: 400 })
+  const body = await request.json()
+  const tenantId = body.tenantId
+  const staffId = body.staffId ?? null
+  const serviceId = body.serviceId ?? null
+  const firstName = sanitizeText(body.firstName, 100)
+  const lastName = sanitizeText(body.lastName, 100)
+  const email = sanitizeEmail(body.email)
+  const phone = sanitizePhone(body.phone)
+
+  if (!isValidUUID(tenantId)) {
+    return NextResponse.json({ error: 'Érvénytelen kérés.' }, { status: 400 })
+  }
+  if (!email) {
+    return NextResponse.json({ error: 'Érvénytelen email cím.' }, { status: 400 })
+  }
+  if (staffId && !isValidUUID(staffId)) {
+    return NextResponse.json({ error: 'Érvénytelen kérés.' }, { status: 400 })
+  }
+  if (serviceId && !isValidUUID(serviceId)) {
+    return NextResponse.json({ error: 'Érvénytelen kérés.' }, { status: 400 })
   }
 
   // Ellenőrzés: már feliratkozott-e ugyanerre
@@ -16,7 +38,7 @@ export async function POST(request: Request) {
     .from('waitlist')
     .select('id')
     .eq('tenant_id', tenantId)
-    .eq('customer_email', email.toLowerCase())
+    .eq('customer_email', email)
     .eq('status', 'waiting')
     .limit(1)
 

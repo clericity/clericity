@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseServer'
 import { getGoogleAccessToken } from '@/lib/googleAuth'
+import { getIP, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit'
 
 function timeToMinutes(time: string): number {
   const [h, m] = time.slice(0, 5).split(':').map(Number)
@@ -8,6 +9,9 @@ function timeToMinutes(time: string): number {
 }
 
 export async function GET(request: Request) {
+  if (!checkRateLimit(getIP(request), 'google/slots', 60, 5 * 60 * 1000)) {
+    return rateLimitResponse()
+  }
   const { searchParams } = new URL(request.url)
   const tenantId = searchParams.get('tenantId')
   const date = searchParams.get('date')

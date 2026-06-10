@@ -1,9 +1,19 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseServer'
 import { getGoogleAccessToken } from '@/lib/googleAuth'
+import { getIP, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit'
+import { isValidUUID } from '@/lib/validate'
 
 export async function POST(request: Request) {
+  if (!checkRateLimit(getIP(request), 'bookings/cancel', 10, 10 * 60 * 1000)) {
+    return rateLimitResponse()
+  }
+
   const { token } = await request.json()
+
+  if (!isValidUUID(token)) {
+    return NextResponse.json({ error: 'Érvénytelen token.' }, { status: 400 })
+  }
 
   // Foglalás lekérése token alapján
   const { data: booking, error: bookingError } = await supabaseAdmin

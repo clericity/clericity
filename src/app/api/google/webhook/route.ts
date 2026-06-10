@@ -1,19 +1,27 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseServer'
 import { getGoogleAccessToken } from '@/lib/googleAuth'
-import { registerCalendarWatch } from '@/lib/googleWatch'
+import { registerCalendarWatch, generateWebhookToken } from '@/lib/googleWatch'
 
 export async function POST(request: Request) {
   const channelId = request.headers.get('X-Goog-Channel-ID')
+  const channelToken = request.headers.get('X-Goog-Channel-Token')
   const resourceState = request.headers.get('X-Goog-Resource-State')
+
+  if (!channelId) {
+    return NextResponse.json({ error: 'No channel ID' }, { status: 400 })
+  }
+
+  // Token ellenőrzés — minden kérésnél, a sync handshake előtt is
+  const expectedToken = generateWebhookToken(channelId)
+  if (!channelToken || channelToken !== expectedToken) {
+    console.warn(`[webhook] Invalid token for channel ${channelId}`)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
   // Első handshake értesítő — nincs teendő
   if (resourceState === 'sync') {
     return NextResponse.json({ ok: true })
-  }
-
-  if (!channelId) {
-    return NextResponse.json({ error: 'No channel ID' }, { status: 400 })
   }
 
   // Melyik staff/tenant-hoz tartozik ez a channel?

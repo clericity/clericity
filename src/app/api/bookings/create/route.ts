@@ -1,15 +1,53 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseServer'
 import { getGoogleAccessToken } from '@/lib/googleAuth'
+import { getIP, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit'
+import { sanitizeText, sanitizeEmail, sanitizePhone, isValidUUID, isValidDate, isValidTime, safeFilterValue } from '@/lib/validate'
 
 export async function POST(request: Request) {
-  const { tenantId, serviceId, staffId, date, slot, duration, firstName, lastName, email, phone, notes } = await request.json()
+  if (!checkRateLimit(getIP(request), 'bookings/create', 10, 10 * 60 * 1000)) {
+    return rateLimitResponse()
+  }
+
+  const body = await request.json()
+
+  // Input validáció
+  const tenantId = body.tenantId
+  const serviceId = body.serviceId
+  const staffId = body.staffId ?? null
+  const date = body.date
+  const slot = body.slot
+  const duration = Number(body.duration)
+  const firstName = sanitizeText(body.firstName, 100)
+  const lastName = sanitizeText(body.lastName, 100)
+  const email = sanitizeEmail(body.email)
+  const phone = sanitizePhone(body.phone)
+  const notes = sanitizeText(body.notes, 1000)
+
+  if (!isValidUUID(tenantId) || !isValidUUID(serviceId)) {
+    return NextResponse.json({ error: 'Érvénytelen kérés.' }, { status: 400 })
+  }
+  if (staffId && !isValidUUID(staffId)) {
+    return NextResponse.json({ error: 'Érvénytelen kérés.' }, { status: 400 })
+  }
+  if (!isValidDate(date) || !isValidTime(slot)) {
+    return NextResponse.json({ error: 'Érvénytelen dátum vagy időpont.' }, { status: 400 })
+  }
+  if (!Number.isInteger(duration) || duration < 5 || duration > 480) {
+    return NextResponse.json({ error: 'Érvénytelen időtartam.' }, { status: 400 })
+  }
+  if (!firstName || !lastName) {
+    return NextResponse.json({ error: 'Név megadása kötelező.' }, { status: 400 })
+  }
+  if (!email) {
+    return NextResponse.json({ error: 'Érvénytelen email cím.' }, { status: 400 })
+  }
 
   // Blacklist ellenőrzés (email VAGY telefonszám alapján, tenant-szinten)
-  if (tenantId && (email || phone?.trim())) {
+  if (email || phone) {
     const orParts: string[] = []
-    if (email) orParts.push(`email.eq.${email.toLowerCase().trim()}`)
-    if (phone?.trim()) orParts.push(`phone.eq.${phone.trim()}`)
+    if (email) orParts.push(`email.eq.${safeFilterValue(email)}`)
+    if (phone) orParts.push(`phone.eq.${safeFilterValue(phone)}`)
 
     const { data: blacklisted } = await supabaseAdmin
       .from('staff_blacklist')

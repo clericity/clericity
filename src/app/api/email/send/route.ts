@@ -1,6 +1,8 @@
 ﻿import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { supabaseAdmin } from '@/lib/supabaseServer'
+import { getIP, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit'
+import { sanitizeEmail } from '@/lib/validate'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -18,7 +20,16 @@ Ha kérdésed van, kérjük vedd fel velünk a kapcsolatot.
 {businessName}`
 
 export async function POST(request: Request) {
-  const { to, customerName, serviceName, date, slot, duration, businessName, cancelToken, tenantId, emailType, bookingUrl, freedDate, freedSlot, serviceDuration, notificationType, customerEmail, customerPhone, staffName, staffPhoto } = await request.json()
+  if (!checkRateLimit(getIP(request), 'email/send', 30, 60 * 60 * 1000)) {
+    return rateLimitResponse()
+  }
+  const body = await request.json()
+  const { to: rawTo, customerName, serviceName, date, slot, duration, businessName, cancelToken, tenantId, emailType, bookingUrl, freedDate, freedSlot, serviceDuration, notificationType, customerEmail, customerPhone, staffName, staffPhoto } = body
+
+  const to = sanitizeEmail(rawTo)
+  if (!to) {
+    return NextResponse.json({ error: 'Érvénytelen email cím.' }, { status: 400 })
+  }
 
   // emailType: 'confirmation' | 'cancel' | 'reschedule' | 'waitlist_notify' | 'welcome'
   const type = emailType || 'confirmation'

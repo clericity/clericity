@@ -1,5 +1,14 @@
+import { createHmac } from 'crypto'
 import { supabaseAdmin } from './supabaseServer'
 import { getGoogleAccessToken } from './googleAuth'
+
+// HMAC-SHA256 token a webhook hitelesítéshez — stateless, nincs DB oszlop szükséges.
+// Google visszaküldi X-Goog-Channel-Token headerben minden értesítésnél.
+export function generateWebhookToken(channelId: string): string {
+  const secret = process.env.WEBHOOK_SECRET
+  if (!secret) throw new Error('WEBHOOK_SECRET env variable is not set')
+  return createHmac('sha256', secret).update(channelId).digest('hex')
+}
 
 type WatchTarget =
   | { type: 'staff'; staffId: string; refreshToken: string; calendarId: string }
@@ -34,6 +43,7 @@ export async function registerCalendarWatch(target: WatchTarget): Promise<void> 
 
   // Watch channel regisztrálása
   const channelId = crypto.randomUUID()
+  const webhookToken = generateWebhookToken(channelId)
   const watchRes = await fetch(
     `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(target.calendarId)}/events/watch`,
     {
@@ -43,6 +53,7 @@ export async function registerCalendarWatch(target: WatchTarget): Promise<void> 
         id: channelId,
         type: 'web_hook',
         address: `${siteUrl}/api/google/webhook`,
+        token: webhookToken,
       }),
     }
   )
