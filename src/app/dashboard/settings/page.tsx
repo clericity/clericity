@@ -79,6 +79,7 @@ export default function SettingsPage() {
   const [generalLoading, setGeneralLoading] = useState(false)
   const [generalSuccess, setGeneralSuccess] = useState(false)
   const [generalError, setGeneralError] = useState('')
+  const [bookingLanguage, setBookingLanguage] = useState('hu')
   const [bookingPrimaryColor, setBookingPrimaryColor] = useState('#1e3a8a')
   const [bookingAccentColor, setBookingAccentColor] = useState('#2563eb')
   const [bookingTransition, setBookingTransition] = useState('swipe')
@@ -176,6 +177,7 @@ export default function SettingsPage() {
         setSlug(tenantData.slug || '')
         setOriginalSlug(tenantData.slug || '')
         setCustomDomain(tenantData.custom_domain || '')
+        setBookingLanguage(tenantData.language || 'hu')
         setRegistrationType(tenantData.registration_type || '')
         setRegTaxNumber(tenantData.tax_number || '')
         setRegAddress(tenantData.address || profileRes.data?.address || '')
@@ -234,7 +236,7 @@ export default function SettingsPage() {
       finalLogoUrl = urlData.publicUrl
     }
     const timezone = COUNTRIES.find(c => c.code === country)?.timezone || 'Europe/Budapest'
-    const { error } = await supabase.from('tenants').update({ name, description, phone, country, timezone, logo_url: finalLogoUrl, slug, ...(isSuperAdmin && { custom_domain: customDomain }) }).eq('id', tenantId)
+    const { error } = await supabase.from('tenants').update({ name, description, phone, country, timezone, logo_url: finalLogoUrl, slug, language: bookingLanguage, ...(isSuperAdmin && { custom_domain: customDomain }) }).eq('id', tenantId)
     await supabase.from('profiles').update({ phone: `${selectedCountry?.phone}${phone}` }).eq('id', userId)
     if (error) { setGeneralError(error.message) } else { setGeneralSuccess(true); setLogoUrl(finalLogoUrl); setOriginalSlug(slug) }
     setGeneralLoading(false)
@@ -385,6 +387,16 @@ export default function SettingsPage() {
                   <div style={{ padding: '0.625rem 1rem', border: '1px solid #d1d5db', borderRadius: '8px', backgroundColor: '#f9fafb', color: '#6b7280', fontSize: '0.875rem' }}>{selectedCountry?.phone}</div>
                   <input type="tel" value={phone} onChange={e => setPhone(e.target.value.replace(/[^\d+\s\-()]/g, ''))} placeholder="30 123 4567" style={{ flex: 1, border: '1px solid #d1d5db', borderRadius: '8px', padding: '0.625rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box' }} />
                 </div>
+              </div>
+
+              {/* Foglalási oldal nyelve */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>{t.dash.booking_language_label}</label>
+                <select value={bookingLanguage} onChange={e => setBookingLanguage(e.target.value)} style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0.625rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', backgroundColor: 'white' }}>
+                  <option value="hu">🇭🇺 Magyar</option>
+                  <option value="en">🇬🇧 English</option>
+                  <option value="sk">🇸🇰 Slovenčina</option>
+                </select>
               </div>
 
               {/* Foglalási link */}

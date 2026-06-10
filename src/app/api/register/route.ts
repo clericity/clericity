@@ -93,6 +93,7 @@ export async function POST(request: Request) {
           to: userEmail,
           customerName: fullName || companyName || 'Felhasználó',
           businessName: tenant.slug,
+          tenantId: tenant.id,
         }),
       })
     } catch (e) {

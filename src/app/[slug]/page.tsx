@@ -4,11 +4,9 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useParams } from 'next/navigation'
 import Image from 'next/image'
-import Turnstile from '@marsidev/react-turnstile'
-
-
-const MONTHS = ['Január', 'Február', 'Március', 'Április', 'Május', 'Június', 'Július', 'Augusztus', 'Szeptember', 'Október', 'November', 'December']
-const DAY_LABELS = ['H', 'K', 'Sze', 'Cs', 'P', 'Szo', 'V']
+import { Turnstile } from '@marsidev/react-turnstile'
+import { translations } from '@/lib/translations'
+import type { Lang } from '@/lib/translations'
 
 export default function BookingPage() {
   const params = useParams()
@@ -234,8 +232,8 @@ export default function BookingPage() {
     const d = new Date(year, month - 1, day)
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
     const tomorrowStart = new Date(todayStart.getTime() + 86400000)
-    if (d.getTime() === todayStart.getTime()) return 'Ma'
-    if (d.getTime() === tomorrowStart.getTime()) return 'Holnap'
+    if (d.getTime() === todayStart.getTime()) return t.today
+    if (d.getTime() === tomorrowStart.getTime()) return t.tomorrow
     return `${month}. ${day}.`
   }
 
@@ -261,6 +259,8 @@ export default function BookingPage() {
   const daysInMonth = getDaysInMonth(currentMonth, currentYear)
   const firstDay = getFirstDayOfMonth(currentMonth, currentYear)
 
+  const tenantLang = ((tenant as Record<string, string>)?.language as Lang) || 'hu'
+  const t = (translations[tenantLang] || translations.hu).booking
   const primaryColor = (tenant as Record<string, string>)?.booking_primary_color || '#1e3a8a'
   const accentColor = (tenant as Record<string, string>)?.booking_accent_color || '#2563eb'
 
@@ -304,13 +304,13 @@ export default function BookingPage() {
 
   if (notFound) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
-      <p style={{ color: 'white', fontSize: '1.5rem' }}>404 — Ez az oldal nem található</p>
+      <p style={{ color: 'white', fontSize: '1.5rem' }}>404 — {translations.hu.booking.not_found}</p>
     </div>
   )
 
   if (!tenant) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
-      <p style={{ color: 'white' }}>Betöltés...</p>
+      <p style={{ color: 'white' }}>{translations.hu.booking.loading}</p>
     </div>
   )
 
@@ -318,12 +318,12 @@ export default function BookingPage() {
     <div style={{ minHeight: '100vh', background: `linear-gradient(135deg, #0f172a, ${primaryColor})`, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
       <div style={{ textAlign: 'center', maxWidth: '400px' }}>
         <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', fontSize: '2.5rem' }}>✓</div>
-        <h2 style={{ color: 'white', fontSize: '2rem', fontWeight: '800', marginBottom: '0.75rem' }}>Foglalás kész!</h2>
+        <h2 style={{ color: 'white', fontSize: '2rem', fontWeight: '800', marginBottom: '0.75rem' }}>{t.booking_done_title}</h2>
         <p style={{ color: '#93c5fd', marginBottom: '2rem', lineHeight: 1.7 }}>
-          Visszaigazolást küldtünk a <strong style={{ color: 'white' }}>{email}</strong> címre.
+          {t.success_sent_to.replace('{email}', '')} <strong style={{ color: 'white' }}>{email}</strong>
         </p>
         <div style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: '16px', padding: '1.5rem', textAlign: 'left' }}>
-          <p style={{ color: '#93c5fd', fontSize: '0.8rem', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Foglalás részletei</p>
+          <p style={{ color: '#93c5fd', fontSize: '0.8rem', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t.success_details}</p>
           <p style={{ color: 'white', fontWeight: '700', fontSize: '1.1rem' }}>{selectedService?.name as string}</p>
           <p style={{ color: '#93c5fd', marginTop: '0.25rem' }}>{selectedDate} · {selectedSlot}</p>
           <p style={{ color: '#93c5fd' }}>{lastName} {firstName}</p>
@@ -405,7 +405,7 @@ export default function BookingPage() {
         {n === 1 && (
           <div>
             <p style={{ fontSize: '0.8rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem' }}>
-              Milyen szolgáltatást keresel?
+              {t.step_service}
             </p>
             <div style={serviceLayout === 'grid' ? { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' } : {}}>
               {(services as Record<string, string | number>[]).map(service => (
@@ -430,7 +430,7 @@ export default function BookingPage() {
                       <div style={{ flex: 1 }}>
                         <p style={{ fontWeight: '700', color: '#111827', fontSize: '0.95rem', marginBottom: '0.2rem' }}>{service.name as string}</p>
                         {service.description && <p style={{ fontSize: '0.8rem', color: '#6b7280', lineHeight: 1.5, marginBottom: '0.35rem', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} dangerouslySetInnerHTML={{ __html: service.description as string }} />}
-                        <p style={{ fontSize: '0.8rem', color: '#6b7280' }}>⏱ {service.duration_minutes as number} perc</p>
+                        <p style={{ fontSize: '0.8rem', color: '#6b7280' }}>⏱ {service.duration_minutes as number} {t.minutes}</p>
                         {service.price && <p style={{ fontWeight: '800', color: accentColor, fontSize: '1rem', marginTop: '0.25rem' }}>{(service.price as number).toLocaleString('hu-HU')} {service.currency === 'EUR' ? '€' : 'Ft'}</p>}
                       </div>
                     </>
@@ -443,12 +443,12 @@ export default function BookingPage() {
                         <div style={{ flex: 1 }}>
                           <p style={{ fontWeight: '700', color: '#111827', fontSize: '1rem', marginBottom: '0.2rem' }}>{service.name as string}</p>
                           {service.description && <p style={{ fontSize: '0.85rem', color: '#6b7280', lineHeight: 1.55, marginBottom: '0.3rem' }} dangerouslySetInnerHTML={{ __html: service.description as string }} />}
-                          <p style={{ fontSize: '0.875rem', color: '#9ca3af' }}>⏱ {service.duration_minutes as number} perc</p>
+                          <p style={{ fontSize: '0.875rem', color: '#9ca3af' }}>⏱ {service.duration_minutes as number} {t.minutes}</p>
                         </div>
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '0.75rem' }}>
                         {service.price && <p style={{ fontWeight: '800', color: accentColor, fontSize: '1.25rem' }}>{(service.price as number).toLocaleString('hu-HU')} {service.currency === 'EUR' ? '€' : 'Ft'}</p>}
-                        <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.2rem' }}>Kattints →</p>
+                        <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.2rem' }}>{t.click_label}</p>
                       </div>
                     </>
                   )}
@@ -461,8 +461,8 @@ export default function BookingPage() {
         {/* ── STEP 2: Staff selection ── */}
         {n === 2 && (
           <div>
-            <button onClick={() => goToStep(1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '0.875rem', marginBottom: '1.5rem' }}>← Vissza</button>
-            <p style={{ fontSize: '0.8rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem' }}>Ki foglalkozzon veled?</p>
+            <button onClick={() => goToStep(1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '0.875rem', marginBottom: '1.5rem' }}>{t.back}</button>
+            <p style={{ fontSize: '0.8rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem' }}>{t.step_staff}</p>
 
             {/* ── Speciális opciók ── */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', marginBottom: '1rem' }}>
@@ -475,8 +475,8 @@ export default function BookingPage() {
               >
                 <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: `${accentColor}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', flexShrink: 0 }}>👥</div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontWeight: '700', color: '#111827', fontSize: '0.95rem', marginBottom: '2px' }}>Mindegy melyik munkás</p>
-                  <p style={{ fontSize: '0.8rem', color: '#6b7280' }}>Bármelyik szabad munkatárshoz foglalhatsz</p>
+                  <p style={{ fontWeight: '700', color: '#111827', fontSize: '0.95rem', marginBottom: '2px' }}>{t.any_staff}</p>
+                  <p style={{ fontSize: '0.8rem', color: '#6b7280' }}>{t.any_staff_desc}</p>
                 </div>
                 <span style={{ color: '#9ca3af', fontSize: '1.1rem' }}>→</span>
               </div>
@@ -490,12 +490,12 @@ export default function BookingPage() {
               >
                 <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#fef3c715', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', flexShrink: 0 }}>⚡</div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontWeight: '700', color: '#111827', fontSize: '0.95rem', marginBottom: '2px' }}>Aki leghamarabb ráér</p>
+                  <p style={{ fontWeight: '700', color: '#111827', fontSize: '0.95rem', marginBottom: '2px' }}>{t.soonest_available}</p>
                   {loadingEarliestSlots
-                    ? <p style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Betöltés...</p>
+                    ? <p style={{ fontSize: '0.8rem', color: '#9ca3af' }}>{t.loading}</p>
                     : globalEarliest
                       ? <p style={{ fontSize: '0.8rem', color: '#6b7280' }}>📅 <strong style={{ color: accentColor }}>{formatShortDate(globalEarliest.date)} {globalEarliest.slot}</strong> — {globalEarliest.staff.name}</p>
-                      : <p style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Nincs elérhető időpont</p>
+                      : <p style={{ fontSize: '0.8rem', color: '#9ca3af' }}>{t.no_slots_avail}</p>
                   }
                 </div>
                 {globalEarliest && <span style={{ color: '#9ca3af', fontSize: '1.1rem' }}>→</span>}
@@ -505,7 +505,7 @@ export default function BookingPage() {
             {/* Elválasztó */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
               <div style={{ flex: 1, height: '1px', backgroundColor: '#e5e7eb' }} />
-              <p style={{ fontSize: '0.72rem', color: '#9ca3af', whiteSpace: 'nowrap' }}>vagy konkrét munkatárs</p>
+              <p style={{ fontSize: '0.72rem', color: '#9ca3af', whiteSpace: 'nowrap' }}>{t.or_specific_staff}</p>
               <div style={{ flex: 1, height: '1px', backgroundColor: '#e5e7eb' }} />
             </div>
 
@@ -532,7 +532,7 @@ export default function BookingPage() {
                       {/* Legkorábbi időpontok */}
                       <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', justifyContent: staffLayout === 'grid' ? 'center' : 'flex-start' }} onClick={e => e.stopPropagation()}>
                         {loadingEarliestSlots && earliest === undefined && (
-                          <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>betöltés...</span>
+                          <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>{t.loading_short}</span>
                         )}
                         {earliest && earliest.slots.map(slot => (
                           <button key={slot}
@@ -542,7 +542,7 @@ export default function BookingPage() {
                           </button>
                         ))}
                         {earliest === null && (
-                          <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Nincs szabad időpont</span>
+                          <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>{t.no_slots_avail}</span>
                         )}
                       </div>
                     </div>
@@ -561,7 +561,7 @@ export default function BookingPage() {
         {/* ── STEP 3: Date + time slot ── */}
         {n === 3 && (
           <div>
-            <button onClick={() => goToStep(staffList.length > 1 ? 2 : 1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '0.875rem', marginBottom: '1.5rem' }}>← Vissza</button>
+            <button onClick={() => goToStep(staffList.length > 1 ? 2 : 1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '0.875rem', marginBottom: '1.5rem' }}>{t.back}</button>
 
             {/* Selected service + staff card */}
             <div style={{ borderRadius: '16px', marginBottom: '1.5rem', overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', border: `1px solid ${selectedService?.color ? (selectedService.color as string) + '40' : '#e5e7eb'}` }}>
@@ -573,7 +573,7 @@ export default function BookingPage() {
                   {selectedService?.icon_url ? <Image src={selectedService.icon_url as string} alt="" width={48} height={48} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '✂️'}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginBottom: '2px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Kiválasztott szolgáltatás</p>
+                  <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginBottom: '2px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t.selected_service}</p>
                   <p style={{ fontWeight: '700', color: '#111827', fontSize: '1rem', marginBottom: selectedService?.description ? '0.3rem' : 0 }}>{selectedService?.name as string}</p>
                   {selectedService?.description && (
                     <div style={{ fontSize: '0.8rem', color: '#6b7280', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} dangerouslySetInnerHTML={{ __html: selectedService.description as string }} />
@@ -585,7 +585,7 @@ export default function BookingPage() {
                       {(selectedService.price as number).toLocaleString('hu-HU')} {selectedService.currency === 'EUR' ? '€' : 'Ft'}
                     </p>
                   ) : null}
-                  <p style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '2px' }}>⏱ {selectedService?.duration_minutes as number} perc</p>
+                  <p style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '2px' }}>⏱ {selectedService?.duration_minutes as number} {t.minutes}</p>
                 </div>
               </div>
               {/* Staff row */}
@@ -598,14 +598,14 @@ export default function BookingPage() {
                     : <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: selectedService?.color ? (selectedService.color as string) + '18' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>👤</div>
                   }
                   <div>
-                    <p style={{ fontSize: '0.7rem', color: '#9ca3af', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>Munkatárs</p>
+                    <p style={{ fontSize: '0.7rem', color: '#9ca3af', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>{t.staff_label}</p>
                     <p style={{ fontWeight: '700', color: '#111827', fontSize: '0.9rem' }}>{selectedStaff.name}</p>
                   </div>
                 </div>
               )}
             </div>
 
-            <p style={{ fontSize: '0.8rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem' }}>Mikor jönnél?</p>
+            <p style={{ fontSize: '0.8rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem' }}>{t.when_coming}</p>
 
             {/* Calendar */}
             <div className="bk-calendar" style={{ backgroundColor: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', borderRadius: '16px', marginBottom: '1rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
@@ -613,8 +613,8 @@ export default function BookingPage() {
                 <button onClick={handlePrevMonth} disabled={isPrevDisabled}
                   style={{ width: '36px', height: '36px', borderRadius: '50%', border: '2px solid #111827', backgroundColor: 'white', cursor: isPrevDisabled ? 'not-allowed' : 'pointer', opacity: isPrevDisabled ? 0.3 : 1, fontSize: '1.1rem', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#111827' }}>←</button>
                 <h3 style={{ fontWeight: '800', color: '#111827', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  {MONTHS[currentMonth]} {currentYear}
-                  {daysLoading && <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '400' }}>betöltés...</span>}
+                  {t.months[currentMonth]} {currentYear}
+                  {daysLoading && <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '400' }}>{t.loading_short}</span>}
                 </h3>
                 <button onClick={handleNextMonth}
                   style={{ width: '36px', height: '36px', borderRadius: '50%', border: '2px solid #111827', backgroundColor: 'white', cursor: 'pointer', fontSize: '1.1rem', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#111827' }}>→</button>
@@ -622,7 +622,7 @@ export default function BookingPage() {
 
               {/* Day labels */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', marginBottom: '0.5rem' }}>
-                {DAY_LABELS.map(d => (
+                {t.days.map(d => (
                   <div key={d} style={{ textAlign: 'center', fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', padding: '0.25rem' }}>{d}</div>
                 ))}
               </div>
@@ -631,7 +631,7 @@ export default function BookingPage() {
               <div style={{ position: 'relative' }}>
                 {daysLoading && (
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: '8px', zIndex: 10 }}>
-                    <p style={{ color: '#6b7280', fontSize: '2rem', fontWeight: '500' }}>⏳ Betöltés...</p>
+                    <p style={{ color: '#6b7280', fontSize: '2rem', fontWeight: '500' }}>⏳ {t.loading}</p>
                   </div>
                 )}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', opacity: daysLoading ? 0.5 : 1, pointerEvents: daysLoading ? 'none' : 'auto' }}>
@@ -660,45 +660,45 @@ export default function BookingPage() {
             {/* Slots */}
             {selectedDate && (
               <div ref={slotsRef} style={{ backgroundColor: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', borderRadius: '16px', padding: '1.25rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-                <p style={{ fontSize: '0.8rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem' }}>Szabad időpontok</p>
-                {slotsLoading && <div style={{ textAlign: 'center', padding: '2rem', color: '#9ca3af' }}>Betöltés...</div>}
-                {!slotsLoading && slotsReason === 'closed' && <div style={{ textAlign: 'center', padding: '1rem', color: '#ef4444' }}>🔴 Ezen a napon zárva vagyunk</div>}
-                {!slotsLoading && slotsReason === 'holiday' && <div style={{ textAlign: 'center', padding: '1rem', color: '#ef4444' }}>🏖️ Ezen a napon szabadnap van</div>}
-                {!slotsLoading && slotsReason === 'no_calendar' && <div style={{ textAlign: 'center', padding: '1rem', color: '#ef4444' }}>Nincs elérhető naptár</div>}
+                <p style={{ fontSize: '0.8rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem' }}>{t.available_slots}</p>
+                {slotsLoading && <div style={{ textAlign: 'center', padding: '2rem', color: '#9ca3af' }}>{t.loading}</div>}
+                {!slotsLoading && slotsReason === 'closed' && <div style={{ textAlign: 'center', padding: '1rem', color: '#ef4444' }}>{t.closed}</div>}
+                {!slotsLoading && slotsReason === 'holiday' && <div style={{ textAlign: 'center', padding: '1rem', color: '#ef4444' }}>{t.holiday}</div>}
+                {!slotsLoading && slotsReason === 'no_calendar' && <div style={{ textAlign: 'center', padding: '1rem', color: '#ef4444' }}>{t.no_calendar}</div>}
                 {!slotsLoading && slots.length === 0 && !slotsReason && (
                   waitlistSuccess ? (
                     <div style={{ textAlign: 'center', padding: '1.5rem' }}>
                       <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>✓</div>
-                      <p style={{ fontWeight: '700', color: '#111827', marginBottom: '0.25rem' }}>Sikeresen feliratkoztál!</p>
-                      <p style={{ fontSize: '0.85rem', color: '#6b7280' }}>Értesítünk, amint szabad időpont nyílik.</p>
+                      <p style={{ fontWeight: '700', color: '#111827', marginBottom: '0.25rem' }}>{t.waitlist_success}</p>
+                      <p style={{ fontSize: '0.85rem', color: '#6b7280' }}>{t.waitlist_success_desc}</p>
                     </div>
                   ) : waitlistMode ? (
                     <div>
                       <p style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '1rem', textAlign: 'center' }}>
-                        Add meg adataidat és értesítünk, amint szabad időpont nyílik ezen a napon.
+                        {t.waitlist_desc_day}
                       </p>
                       <div className="bk-name-row" style={{ marginBottom: '0.75rem' }}>
                         <div style={{ flex: 1 }}>
-                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>Vezetéknév</label>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>{t.last_name}</label>
                           <input type="text" value={lastName} onChange={e => setLastName(e.target.value)}
                             style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '10px', padding: '0.65rem 0.875rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
                             placeholder="Kovács" />
                         </div>
                         <div style={{ flex: 1 }}>
-                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>Keresztnév</label>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>{t.first_name}</label>
                           <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
                             style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '10px', padding: '0.65rem 0.875rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
                             placeholder="János" />
                         </div>
                       </div>
                       <div style={{ marginBottom: '0.75rem' }}>
-                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>Email cím *</label>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>{t.email_field}</label>
                         <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                           style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '10px', padding: '0.65rem 0.875rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
                           placeholder="kovacs.janos@email.com" />
                       </div>
                       <div style={{ marginBottom: '1rem' }}>
-                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>Telefonszám</label>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>{t.phone}</label>
                         <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
                           style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '10px', padding: '0.65rem 0.875rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
                           placeholder="+36 30 123 4567" />
@@ -719,20 +719,20 @@ export default function BookingPage() {
                       <div style={{ display: 'flex', gap: '0.625rem' }}>
                         <button onClick={() => setWaitlistMode(false)}
                           style={{ flex: '0 0 auto', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem' }}>
-                          Mégse
+                          {t.waitlist_cancel}
                         </button>
                         <button onClick={handleWaitlist} disabled={waitlistLoading || !email}
                           style={{ flex: 1, padding: '0.75rem', borderRadius: '10px', border: 'none', backgroundColor: waitlistLoading || !email ? '#e5e7eb' : accentColor, color: waitlistLoading || !email ? '#9ca3af' : 'white', cursor: waitlistLoading || !email ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '0.875rem' }}>
-                          {waitlistLoading ? 'Feliratkozás...' : 'Feliratkozás a várólistára →'}
+                          {waitlistLoading ? t.waitlist_in_progress : t.waitlist_submit}
                         </button>
                       </div>
                     </div>
                   ) : (
                     <div style={{ textAlign: 'center', padding: '1rem' }}>
-                      <p style={{ color: '#9ca3af', marginBottom: '1rem' }}>Nincs szabad időpont ezen a napon</p>
+                      <p style={{ color: '#9ca3af', marginBottom: '1rem' }}>{t.no_slots}</p>
                       <button onClick={() => setWaitlistMode(true)}
                         style={{ padding: '0.75rem 1.5rem', borderRadius: '10px', border: `2px solid ${accentColor}`, backgroundColor: 'transparent', color: accentColor, cursor: 'pointer', fontWeight: '700', fontSize: '0.9rem' }}>
-                        📋 Feliratkozás a várólistára
+                        {t.waitlist_btn}
                       </button>
                     </div>
                   )
@@ -750,7 +750,7 @@ export default function BookingPage() {
                     </div>
                     {slots.length <= 3 && (
                       <p style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: '#ef4444', fontWeight: '600' }}>
-                        🔥 Csak {slots.length} szabad időpont maradt erre a napra!
+                        {t.few_slots_1} {slots.length} {t.few_slots_2}
                       </p>
                     )}
                   </>
@@ -762,7 +762,7 @@ export default function BookingPage() {
               <button ref={continueRef} onClick={() => goToStep(4)}
                 className="bk-continue-btn"
                 style={{ width: '100%', marginTop: '1rem', backgroundColor: accentColor, color: 'white', borderRadius: '14px', border: 'none', cursor: 'pointer', fontWeight: '700', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
-                Tovább az adatok megadásához →
+                {t.book_btn}
               </button>
             )}
           </div>
@@ -771,11 +771,11 @@ export default function BookingPage() {
         {/* ── STEP 4: Booking form ── */}
         {n === 4 && (
           <div>
-            <button onClick={() => goToStep(3)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '0.875rem', marginBottom: '1.5rem' }}>← Vissza</button>
+            <button onClick={() => goToStep(3)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '0.875rem', marginBottom: '1.5rem' }}>{t.back}</button>
 
             {/* Summary card */}
             <div style={{ backgroundColor: primaryColor, borderRadius: '16px', padding: '1.25rem 1.5rem', marginBottom: '1.5rem' }}>
-              <p style={{ color: '#93c5fd', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '1rem' }}>Foglalás összefoglalója</p>
+              <p style={{ color: '#93c5fd', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '1rem' }}>{t.summary}</p>
 
               {/* Munkatárs sor */}
               {selectedStaff && (
@@ -787,7 +787,7 @@ export default function BookingPage() {
                     : <div style={{ width: '44px', height: '44px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', flexShrink: 0 }}>👤</div>
                   }
                   <div>
-                    <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.72rem', marginBottom: '2px' }}>Munkatárs</p>
+                    <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.72rem', marginBottom: '2px' }}>{t.staff_label}</p>
                     <p style={{ color: 'white', fontWeight: '700', fontSize: '0.95rem' }}>{selectedStaff.name}</p>
                   </div>
                 </div>
@@ -796,7 +796,7 @@ export default function BookingPage() {
               {/* Szolgáltatás + ár */}
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.75rem' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.72rem', marginBottom: '2px' }}>Szolgáltatás</p>
+                  <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.72rem', marginBottom: '2px' }}>{t.service_label}</p>
                   <p style={{ color: 'white', fontWeight: '700', fontSize: '1rem', marginBottom: selectedService?.description ? '0.3rem' : 0 }}>{selectedService?.name as string}</p>
                   {selectedService?.description && (
                     <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} dangerouslySetInnerHTML={{ __html: selectedService.description as string }} />
@@ -804,7 +804,7 @@ export default function BookingPage() {
                 </div>
                 {selectedService?.price ? (
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.72rem', marginBottom: '2px' }}>Összeg</p>
+                    <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.72rem', marginBottom: '2px' }}>{t.amount_label}</p>
                     <p style={{ color: 'white', fontWeight: '800', fontSize: '1.15rem' }}>
                       {(selectedService.price as number).toLocaleString('hu-HU')} {selectedService.currency === 'EUR' ? '€' : 'Ft'}
                     </p>
@@ -815,28 +815,28 @@ export default function BookingPage() {
               {/* Időpont */}
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                 <div>
-                  <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.72rem', marginBottom: '2px' }}>Időpont</p>
+                  <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.72rem', marginBottom: '2px' }}>{t.time_label}</p>
                   <p style={{ color: 'white', fontSize: '0.875rem', fontWeight: '600' }}>📅 {selectedDate} · 🕐 {selectedSlot}</p>
                 </div>
                 <div>
-                  <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.72rem', marginBottom: '2px' }}>Időtartam</p>
-                  <p style={{ color: 'white', fontSize: '0.875rem', fontWeight: '600' }}>⏱ {selectedService?.duration_minutes as number} perc</p>
+                  <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.72rem', marginBottom: '2px' }}>{t.duration_label}</p>
+                  <p style={{ color: 'white', fontSize: '0.875rem', fontWeight: '600' }}>⏱ {selectedService?.duration_minutes as number} {t.minutes}</p>
                 </div>
               </div>
             </div>
 
-            <p style={{ fontSize: '0.8rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem' }}>Add meg adataidat</p>
+            <p style={{ fontSize: '0.8rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem' }}>{t.enter_data}</p>
 
             <div className="bk-card" style={{ backgroundColor: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', borderRadius: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
               <div className="bk-name-row" style={{ marginBottom: '1rem' }}>
                 <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>Vezetéknév *</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>{t.lastname_required}</label>
                   <input type="text" value={lastName} onChange={e => setLastName(e.target.value)}
                     style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
                     placeholder="Kovács" />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>Keresztnév *</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>{t.firstname_required}</label>
                   <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
                     style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
                     placeholder="János" />
@@ -844,14 +844,14 @@ export default function BookingPage() {
               </div>
 
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>Email cím *</label>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>{t.email_field}</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                   style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
                   placeholder="kovacs.janos@email.com" />
               </div>
 
               <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>Telefonszám</label>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>{t.phone}</label>
                 <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
                   style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
                   placeholder="+36 30 123 4567" />
@@ -864,15 +864,15 @@ export default function BookingPage() {
               {/* Lemondási szabályzat — csak ha be van kapcsolva a beállításokban */}
               {tenant.cancellation_policy_enabled && tenant.cancellation_policy_text && (
                 <div style={{ backgroundColor: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '10px', padding: '0.875rem 1rem', marginBottom: '1rem' }}>
-                  <p style={{ fontSize: '0.8rem', fontWeight: '700', color: '#c2410c', marginBottom: '0.375rem', margin: '0 0 0.375rem' }}>📋 Lemondási szabályzat</p>
+                  <p style={{ fontSize: '0.8rem', fontWeight: '700', color: '#c2410c', marginBottom: '0.375rem', margin: '0 0 0.375rem' }}>{t.cancellation_policy_title}</p>
                   <p style={{ fontSize: '0.78rem', color: '#7c2d12', lineHeight: 1.6, margin: 0 }}>{tenant.cancellation_policy_text as string}</p>
                 </div>
               )}
 
               {/* Adatvédelmi tájékoztató */}
               <p style={{ fontSize: '0.75rem', color: '#9ca3af', textAlign: 'center', marginBottom: '1rem', lineHeight: 1.6 }}>
-                A foglalással elfogadod az{' '}
-                <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: accentColor, textDecoration: 'underline' }}>adatvédelmi tájékoztatót</a>.
+                {t.privacy_consent_text}{' '}
+                <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: accentColor, textDecoration: 'underline' }}>{t.privacy_link}</a>.
               </p>
 
               <div style={{ marginBottom: '1rem' }}>
@@ -890,7 +890,7 @@ export default function BookingPage() {
               <button onClick={handleBooking} disabled={bookingLoading || !lastName || !firstName || !email || !bookingTurnstileToken}
                 className="bk-continue-btn"
                 style={{ width: '100%', backgroundColor: bookingLoading || !lastName || !firstName || !email || !bookingTurnstileToken ? '#e5e7eb' : accentColor, color: bookingLoading || !lastName || !firstName || !email || !bookingTurnstileToken ? '#9ca3af' : 'white', borderRadius: '14px', border: 'none', cursor: bookingLoading || !lastName || !firstName || !email || !bookingTurnstileToken ? 'not-allowed' : 'pointer', fontWeight: '700', boxShadow: bookingLoading || !lastName || !firstName || !email || !bookingTurnstileToken ? 'none' : '0 4px 15px rgba(0,0,0,0.2)' }}>
-                {bookingLoading ? 'Foglalás...' : 'Foglalás →'}
+                {bookingLoading ? t.booking_in_progress : t.confirm_btn}
               </button>
             </div>
           </div>

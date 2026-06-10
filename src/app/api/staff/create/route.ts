@@ -3,6 +3,8 @@ import { supabaseAdmin } from '@/lib/supabaseServer'
 import { Resend } from 'resend'
 import { getAuthUser, getUserTenantId, unauthorizedResponse, forbiddenResponse } from '@/lib/auth'
 import { writeAuditLog } from '@/lib/audit'
+import { translations } from '@/lib/translations'
+import type { Lang } from '@/lib/translations'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -97,12 +99,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: profileError.message }, { status: 400 })
   }
 
-  // Tenant neve az emailhez
+  // Tenant neve és nyelve az emailhez
   const { data: tenant } = await supabaseAdmin
     .from('tenants')
-    .select('name')
+    .select('name, language')
     .eq('id', tenantId)
     .single()
+
+  const staffLang: Lang = (tenant?.language && tenant.language in translations) ? tenant.language as Lang : 'hu'
+  const sw = translations[staffLang].email
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
@@ -110,7 +115,7 @@ export async function POST(request: Request) {
   const { data: emailData, error: emailError } = await resend.emails.send({
     from: `CLERICITY <onboarding@resend.dev>`,
     to: [email],
-    subject: `👋 Üdvözlünk a CLERICITY rendszerben — belépési adataid`,
+    subject: sw.staff_welcome_subject,
     html: `
       <!DOCTYPE html>
       <html>
@@ -120,41 +125,39 @@ export async function POST(request: Request) {
 
             <div style="background:linear-gradient(135deg,#0f172a,#1e3a8a);padding:2rem;text-align:center;">
               <h1 style="color:white;font-size:1.75rem;font-weight:800;margin:0;">CLERICITY</h1>
-              <p style="color:#93c5fd;margin:0.5rem 0 0;font-size:0.9rem;">Online Foglalási Rendszer</p>
+              <p style="color:#93c5fd;margin:0.5rem 0 0;font-size:0.9rem;">${sw.staff_welcome_subtitle}</p>
             </div>
 
             <div style="padding:2rem;">
-              <h2 style="color:#111827;font-size:1.25rem;font-weight:700;margin:0 0 0.5rem;">Szia, ${name}! 👋</h2>
+              <h2 style="color:#111827;font-size:1.25rem;font-weight:700;margin:0 0 0.5rem;">${sw.staff_welcome_greeting.replace('{name}', name)}</h2>
               <p style="color:#374151;font-size:0.9rem;line-height:1.6;margin:0 0 1.5rem;">
-                <strong>${tenant?.name || 'A vállalkozás'}</strong> hozzáadott téged a CLERICITY foglalási rendszeréhez mint munkás.
-                Az alábbiakban találod a belépési adataidat.
+                ${sw.staff_welcome_body.replace('{businessName}', `<strong>${tenant?.name || 'CLERICITY'}</strong>`)}
               </p>
 
               <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;">
-                <p style="margin:0 0 0.75rem;font-size:0.8rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.08em;">Belépési adatok</p>
+                <p style="margin:0 0 0.75rem;font-size:0.8rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.08em;">${sw.staff_welcome_credentials_title}</p>
                 <div style="margin-bottom:0.625rem;">
-                  <span style="font-size:0.8rem;color:#6b7280;">Email:</span>
+                  <span style="font-size:0.8rem;color:#6b7280;">${sw.staff_welcome_email_label}</span>
                   <span style="font-size:0.9rem;font-weight:700;color:#111827;margin-left:0.5rem;">${email}</span>
                 </div>
                 <div>
-                  <span style="font-size:0.8rem;color:#6b7280;">Jelszó:</span>
+                  <span style="font-size:0.8rem;color:#6b7280;">${sw.staff_welcome_password_label}</span>
                   <span style="font-size:0.9rem;font-weight:700;color:#111827;margin-left:0.5rem;font-family:monospace;background:#eff6ff;padding:0.2rem 0.5rem;border-radius:4px;">${initialPassword}</span>
                 </div>
               </div>
 
               <a href="${siteUrl}"
                 style="display:block;text-align:center;background:#2563eb;color:white;padding:0.875rem;border-radius:10px;text-decoration:none;font-weight:700;font-size:1rem;margin-bottom:1.25rem;">
-                Belépés a rendszerbe →
+                ${sw.staff_welcome_login_btn}
               </a>
 
               <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:1rem;font-size:0.85rem;color:#92400e;">
-                🔑 <strong>Fontos:</strong> A belépés után a jelszavadat megváltoztathatod a
-                <strong>Profilom → Jelszó módosítása</strong> szekción belül. Ajánlott az első belépés után megtenni!
+                ${sw.staff_welcome_password_tip}
               </div>
             </div>
 
             <div style="background:#f8fafc;padding:1.25rem;text-align:center;border-top:1px solid #e5e7eb;">
-              <p style="color:#9ca3af;font-size:0.75rem;margin:0;">Powered by CLERICITY — Online Foglalási Rendszer</p>
+              <p style="color:#9ca3af;font-size:0.75rem;margin:0;">${sw.staff_welcome_footer}</p>
             </div>
           </div>
         </body>

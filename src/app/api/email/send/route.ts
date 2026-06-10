@@ -3,21 +3,10 @@ import { Resend } from 'resend'
 import { supabaseAdmin } from '@/lib/supabaseServer'
 import { getIP, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit'
 import { sanitizeEmail } from '@/lib/validate'
+import { translations } from '@/lib/translations'
+import type { Lang } from '@/lib/translations'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
-
-const DEFAULT_EMAIL_BODY = `Kedves {customerName}!
-
-Köszönjük a foglalásodat! Az alábbiakban találod a foglalásod részleteit:
-
-🗓 Szolgáltatás: {serviceName}
-📅 Dátum: {date}
-🕐 Időpont: {slot}
-
-Ha kérdésed van, kérjük vedd fel velünk a kapcsolatot.
-
-Üdvözlettel,
-{businessName}`
 
 export async function POST(request: Request) {
   if (!checkRateLimit(getIP(request), 'email/send', 30, 60 * 60 * 1000)) {
@@ -36,6 +25,15 @@ export async function POST(request: Request) {
 
   // Regisztrációs üdvözlő email
   if (type === 'welcome') {
+    let welcomeLang: Lang = 'hu'
+    if (tenantId) {
+      const { data: tenantLangRow } = await supabaseAdmin
+        .from('tenants').select('language').eq('id', tenantId).single()
+      if (tenantLangRow?.language && tenantLangRow.language in translations) {
+        welcomeLang = tenantLangRow.language as Lang
+      }
+    }
+    const we = translations[welcomeLang].email
     const displayName = customerName || 'Felhasználó'
     const businessSlug = businessName || ''
     const siteUrlW = process.env.NEXT_PUBLIC_SITE_URL || 'https://clericity.com'
@@ -45,56 +43,54 @@ export async function POST(request: Request) {
     const { data, error } = await resend.emails.send({
       from: 'CLERICITY <onboarding@resend.dev>',
       to: [to],
-      subject: '🎉 Sikeres regisztráció — Üdvözöl a CLERICITY!',
+      subject: we.welcome_subject,
       html: `
         <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
         <body style="margin:0;padding:0;background:#f8fafc;font-family:'Segoe UI',sans-serif;">
           <div style="max-width:560px;margin:2rem auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
             <div style="background:linear-gradient(135deg,#0f172a,#1e3a8a);padding:2.5rem 2rem;text-align:center;">
               <h1 style="color:white;font-size:1.75rem;font-weight:800;margin:0 0 0.5rem;">CLERICITY</h1>
-              <p style="color:#93c5fd;margin:0;font-size:0.9rem;">Online Foglalási Rendszer</p>
+              <p style="color:#93c5fd;margin:0;font-size:0.9rem;">${we.welcome_subtitle}</p>
             </div>
             <div style="padding:2rem;">
-              <h2 style="color:#111827;font-size:1.25rem;font-weight:700;margin:0 0 0.75rem;">🎉 Üdvözlünk, ${displayName}!</h2>
-              <p style="color:#374151;font-size:0.9rem;line-height:1.7;margin:0 0 1.5rem;">
-                Regisztrációd sikeresen megtörtént. Mostantól saját online foglalási rendszered van — ügyfeleid könnyedén tudnak időpontot foglalni hozzád.
-              </p>
+              <h2 style="color:#111827;font-size:1.25rem;font-weight:700;margin:0 0 0.75rem;">${we.welcome_title.replace('{name}', displayName)}</h2>
+              <p style="color:#374151;font-size:0.9rem;line-height:1.7;margin:0 0 1.5rem;">${we.welcome_body}</p>
 
               <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;">
-                <p style="color:#15803d;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 0.75rem;">✅ Mi történt most?</p>
+                <p style="color:#15803d;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 0.75rem;">${we.welcome_what_happened}</p>
                 <ul style="color:#374151;font-size:0.875rem;line-height:1.8;margin:0;padding-left:1.25rem;">
-                  <li>Létrehoztuk a fiókodat</li>
-                  <li>Beállítottuk az online foglalási oldalad</li>
-                  <li>Megkaptad a saját foglalási linket</li>
+                  <li>${we.welcome_step_1}</li>
+                  <li>${we.welcome_step_2}</li>
+                  <li>${we.welcome_step_3}</li>
                 </ul>
               </div>
 
               ${businessSlug ? `
               <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;">
-                <p style="color:#1d4ed8;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 0.5rem;">🔗 Foglalási linked</p>
+                <p style="color:#1d4ed8;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 0.5rem;">${we.welcome_booking_link_title}</p>
                 <p style="color:#111827;font-size:0.875rem;margin:0;word-break:break-all;"><a href="${tenantBookingUrl}" style="color:#2563eb;font-weight:600;">${tenantBookingUrl}</a></p>
-                <p style="color:#6b7280;font-size:0.78rem;margin:0.375rem 0 0;">Ezt a linket küldd el az ügyfeleidnek!</p>
+                <p style="color:#6b7280;font-size:0.78rem;margin:0.375rem 0 0;">${we.welcome_booking_link_desc}</p>
               </div>
               ` : ''}
 
               <div style="text-align:center;margin:1.5rem 0;">
                 <a href="${dashboardUrl}" style="display:inline-block;background:linear-gradient(135deg,#1d4ed8,#2563eb);color:white;padding:0.875rem 2.5rem;border-radius:10px;text-decoration:none;font-weight:700;font-size:1rem;box-shadow:0 4px 12px rgba(37,99,235,0.3);">
-                  Belépés a dashboardra →
+                  ${we.welcome_dashboard_btn}
                 </a>
               </div>
 
               <div style="background:#fafafa;border-radius:10px;padding:1rem 1.25rem;border:1px solid #e5e7eb;">
                 <p style="color:#374151;font-size:0.8rem;line-height:1.7;margin:0;">
-                  <strong>Következő lépések:</strong><br>
-                  1. Állítsd be a nyitvatartásodat<br>
-                  2. Add hozzá a szolgáltatásaidat<br>
-                  3. Kösd össze a Google Naptáradat<br>
-                  4. Oszd meg a foglalási linkedet
+                  <strong>${we.welcome_next_steps}</strong><br>
+                  1. ${we.welcome_next_1}<br>
+                  2. ${we.welcome_next_2}<br>
+                  3. ${we.welcome_next_3}<br>
+                  4. ${we.welcome_next_4}
                 </p>
               </div>
             </div>
             <div style="background:#f8fafc;padding:1.5rem;text-align:center;border-top:1px solid #e5e7eb;">
-              <p style="color:#9ca3af;font-size:0.75rem;margin:0;">Kérdésed van? Írj nekünk: <a href="mailto:clericity.booking@gmail.com" style="color:#6b7280;">clericity.booking@gmail.com</a></p>
+              <p style="color:#9ca3af;font-size:0.75rem;margin:0;">${we.welcome_support} <a href="mailto:clericity.booking@gmail.com" style="color:#6b7280;">clericity.booking@gmail.com</a></p>
               <p style="color:#9ca3af;font-size:0.72rem;margin:0.4rem 0 0;">Powered by CLERICITY</p>
             </div>
           </div>
@@ -107,19 +103,26 @@ export async function POST(request: Request) {
 
   // Várólistás értesítő email
   if (type === 'waitlist_notify') {
-    let waitlistSubject = `🎉 Szabad időpont nyílt meg — {businessName}`
-    let waitlistBody = `Kedves {customerName}!\n\nÖrömmel értesítünk, hogy szabad időpont nyílt meg a {businessName} naptárában!\n\nSiess, foglald le mielőtt elfogy!\n\nÜdvözlettel,\n{businessName}`
+    let waitlistDefaults = translations.hu.email
     let fromName = 'CLERICITY'
+    let waitlistSubject = waitlistDefaults.default_waitlist_subject
+    let waitlistBody = waitlistDefaults.default_waitlist_body
 
     if (tenantId) {
-      const { data: tenant } = await supabaseAdmin
+      const { data: tenantRow } = await supabaseAdmin
         .from('tenants')
-        .select('waitlist_email_subject, waitlist_email_body, email_from_name')
+        .select('waitlist_email_subject, waitlist_email_body, email_from_name, language')
         .eq('id', tenantId)
         .single()
-      if (tenant?.email_from_name) fromName = tenant.email_from_name
-      if (tenant?.waitlist_email_subject) waitlistSubject = tenant.waitlist_email_subject
-      if (tenant?.waitlist_email_body) waitlistBody = tenant.waitlist_email_body
+      if (tenantRow?.language && tenantRow.language in translations) {
+        const wLang = tenantRow.language as Lang
+        waitlistDefaults = translations[wLang].email
+        waitlistSubject = waitlistDefaults.default_waitlist_subject
+        waitlistBody = waitlistDefaults.default_waitlist_body
+      }
+      if (tenantRow?.email_from_name) fromName = tenantRow.email_from_name
+      if (tenantRow?.waitlist_email_subject) waitlistSubject = tenantRow.waitlist_email_subject
+      if (tenantRow?.waitlist_email_body) waitlistBody = tenantRow.waitlist_email_body
     }
 
     const replacements: Record<string, string> = {
@@ -235,15 +238,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, data })
   }
 
+  // Determine tenant language for default templates
+  let tenantLang: Lang = 'hu'
+  let emailDefaults = translations.hu.email
+
+  if (tenantId) {
+    const { data: tenantLangRow } = await supabaseAdmin
+      .from('tenants')
+      .select('language')
+      .eq('id', tenantId)
+      .single()
+    if (tenantLangRow?.language && tenantLangRow.language in translations) {
+      tenantLang = tenantLangRow.language as Lang
+      emailDefaults = translations[tenantLang].email
+    }
+  }
+
   const defaultSubjects: Record<string, string> = {
-    confirmation: '✅ Foglalás visszaigazolása — {businessName}',
-    cancel:       '❌ Foglalás lemondva — {businessName}',
-    reschedule:   '🔄 Foglalás átütemezve — {businessName}',
+    confirmation: emailDefaults.default_confirmation_subject,
+    cancel:       emailDefaults.default_cancel_subject,
+    reschedule:   emailDefaults.default_reschedule_subject,
   }
   const defaultBodies: Record<string, string> = {
-    confirmation: DEFAULT_EMAIL_BODY,
-    cancel: `Kedves {customerName}!\n\nFoglalásod sikeresen lemondásra került.\n\n🗓 Szolgáltatás: {serviceName}\n📅 Dátum: {date}\n🕐 Időpont: {slot}\n\nReméljük hamarosan viszontlátjuk!\n\nÜdvözlettel,\n{businessName}`,
-    reschedule: `Kedves {customerName}!\n\nFoglalásod sikeresen átütemezésre került.\n\n🗓 Szolgáltatás: {serviceName}\n📅 Új dátum: {date}\n🕐 Új időpont: {slot}\n\nHa kérdésed van, vedd fel velünk a kapcsolatot.\n\nÜdvözlettel,\n{businessName}`,
+    confirmation: emailDefaults.default_confirmation_body,
+    cancel:       emailDefaults.default_cancel_body,
+    reschedule:   emailDefaults.default_reschedule_body,
   }
 
   let subject = defaultSubjects[type]
