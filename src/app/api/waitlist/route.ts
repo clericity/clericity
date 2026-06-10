@@ -20,6 +20,10 @@ export async function POST(request: Request) {
   const email = sanitizeEmail(body.email)
   const phone = sanitizePhone(body.phone)
 
+  if (body.website) {
+    return NextResponse.json({ success: true })
+  }
+
   if (!isValidUUID(tenantId)) {
     return NextResponse.json({ error: 'Érvénytelen kérés.' }, { status: 400 })
   }

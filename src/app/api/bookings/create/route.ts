@@ -24,6 +24,10 @@ export async function POST(request: Request) {
   const phone = sanitizePhone(body.phone)
   const notes = sanitizeText(body.notes, 1000)
 
+  if (body.website) {
+    return NextResponse.json({ success: true })
+  }
+
   if (!isValidUUID(tenantId) || !isValidUUID(serviceId)) {
     return NextResponse.json({ error: 'Érvénytelen kérés.' }, { status: 400 })
   }

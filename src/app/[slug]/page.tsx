@@ -43,6 +43,7 @@ export default function BookingPage() {
   const [waitlistLoading, setWaitlistLoading] = useState(false)
   const [waitlistSuccess, setWaitlistSuccess] = useState(false)
   const [waitlistError, setWaitlistError] = useState('')
+  const [honeypot, setHoneypot] = useState('')
   const [staffList, setStaffList] = useState<{ id: string; name: string; profile_photo: string | null; bio: string | null }[]>([])
   const [selectedStaff, setSelectedStaff] = useState<{ id: string; name: string; profile_photo: string | null; bio: string | null } | null>(null)
   const [staffEarliestSlots, setStaffEarliestSlots] = useState<Record<string, { date: string; slots: string[] } | null>>({})
@@ -163,7 +164,7 @@ export default function BookingPage() {
     const res = await fetch('/api/bookings/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tenantId: tenant.id, serviceId: selectedService.id, staffId: selectedStaff?.id, date: selectedDate, slot: selectedSlot, duration: selectedService.duration_minutes, firstName, lastName, email, phone }),
+      body: JSON.stringify({ tenantId: tenant.id, serviceId: selectedService.id, staffId: selectedStaff?.id, date: selectedDate, slot: selectedSlot, duration: selectedService.duration_minutes, firstName, lastName, email, phone, website: honeypot }),
     })
     const data = await res.json()
     if (data.error) setBookingError(data.error)
@@ -186,6 +187,7 @@ export default function BookingPage() {
         lastName,
         email,
         phone,
+        website: honeypot,
       }),
     })
     const data = await res.json()
@@ -697,6 +699,9 @@ export default function BookingPage() {
                           style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '10px', padding: '0.65rem 0.875rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
                           placeholder="+36 30 123 4567" />
                       </div>
+                      <div style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', overflow: 'hidden', opacity: 0 }} aria-hidden="true">
+                        <input name="website" type="text" value={honeypot} onChange={e => setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" />
+                      </div>
                       {waitlistError && <p style={{ color: '#ef4444', fontSize: '0.85rem', marginBottom: '0.75rem' }}>{waitlistError}</p>}
                       <div style={{ display: 'flex', gap: '0.625rem' }}>
                         <button onClick={() => setWaitlistMode(false)}
@@ -837,6 +842,10 @@ export default function BookingPage() {
                 <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
                   style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '10px', padding: '0.75rem 1rem', color: '#111827', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
                   placeholder="+36 30 123 4567" />
+              </div>
+
+              <div style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', overflow: 'hidden', opacity: 0 }} aria-hidden="true">
+                <input name="website" type="text" value={honeypot} onChange={e => setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" />
               </div>
 
               {/* Lemondási szabályzat — csak ha be van kapcsolva a beállításokban */}
