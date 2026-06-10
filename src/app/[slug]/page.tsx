@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { Turnstile } from '@marsidev/react-turnstile'
 import { translations } from '@/lib/translations'
 import type { Lang } from '@/lib/translations'
+import { areNamesBlocked } from '@/lib/nameFilter'
 
 export default function BookingPage() {
   const params = useParams()
@@ -160,6 +161,10 @@ export default function BookingPage() {
 
   const handleBooking = async () => {
     if (!tenant || !selectedService || !selectedDate || !selectedSlot) return
+    if (areNamesBlocked(firstName, lastName)) {
+      setBookingError(t.name_blocked)
+      return
+    }
     setBookingLoading(true)
     setBookingError('')
     const res = await fetch('/api/bookings/create', {
@@ -175,6 +180,10 @@ export default function BookingPage() {
 
   const handleWaitlist = async () => {
     if (!tenant || !email) return
+    if (areNamesBlocked(firstName, lastName)) {
+      setWaitlistError(t.name_blocked)
+      return
+    }
     setWaitlistLoading(true)
     setWaitlistError('')
     const res = await fetch('/api/waitlist', {

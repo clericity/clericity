@@ -13,9 +13,15 @@ export default function BillingPage() {
   const [tenantId, setTenantId] = useState<string | null>(null)
   const [plan, setPlan] = useState('free')
   const [planExpiresAt, setPlanExpiresAt] = useState<string | null>(null)
+  const [stripeSubscriptionId, setStripeSubscriptionId] = useState<string | null>(null)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const [planSaving, setPlanSaving] = useState(false)
   const [planSuccess, setPlanSuccess] = useState(false)
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null)
+  const [checkoutError, setCheckoutError] = useState('')
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+  const [cancelLoading, setCancelLoading] = useState(false)
+  const [cancelError, setCancelError] = useState('')
 
   useEffect(() => {
     const init = async () => {
@@ -25,8 +31,12 @@ export default function BillingPage() {
       if (!profile?.tenant_id) return
       setTenantId(profile.tenant_id)
       setIsSuperAdmin(profile.role === 'super_admin')
-      const { data: tenant } = await supabase.from('tenants').select('plan, plan_expires_at').eq('id', profile.tenant_id).single()
-      if (tenant) { setPlan(tenant.plan || 'free'); setPlanExpiresAt(tenant.plan_expires_at || null) }
+      const { data: tenant } = await supabase.from('tenants').select('plan, plan_expires_at, stripe_subscription_id').eq('id', profile.tenant_id).single()
+      if (tenant) {
+        setPlan(tenant.plan || 'free')
+        setPlanExpiresAt(tenant.plan_expires_at || null)
+        setStripeSubscriptionId(tenant.stripe_subscription_id || null)
+      }
     }
     init()
   }, [router])
@@ -45,6 +55,51 @@ export default function BillingPage() {
     setPlan(newPlan); setPlanSuccess(true)
     setPlanSaving(false)
     setTimeout(() => setPlanSuccess(false), 2500)
+  }
+
+  const handleStripeCheckout = async (targetPlan: string) => {
+    setCheckoutError('')
+    setCheckoutLoading(targetPlan)
+    try {
+      const { data: { session: sess } } = await supabase.auth.getSession()
+      const res = await fetch('/api/stripe/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sess?.access_token}` },
+        body: JSON.stringify({ plan: targetPlan }),
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        setCheckoutError(data.error || 'Hiba történt a fizetés indításakor.')
+        setCheckoutLoading(null)
+      }
+    } catch {
+      setCheckoutError('Hálózati hiba. Kérjük próbáld újra.')
+      setCheckoutLoading(null)
+    }
+  }
+
+  const handleCancelSubscription = async () => {
+    setCancelLoading(true)
+    setCancelError('')
+    try {
+      const { data: { session: sess } } = await supabase.auth.getSession()
+      const res = await fetch('/api/stripe/cancel-subscription', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${sess?.access_token}` },
+      })
+      const data = await res.json()
+      if (data.success) {
+        setStripeSubscriptionId(null)
+        setShowCancelConfirm(false)
+      } else {
+        setCancelError(data.error || 'Hiba történt a lemondáskor.')
+      }
+    } catch {
+      setCancelError('Hálózati hiba. Kérjük próbáld újra.')
+    }
+    setCancelLoading(false)
   }
 
   const PLANS = [
@@ -96,9 +151,16 @@ export default function BillingPage() {
                 )
               })()}
             </div>
-            <span style={{ backgroundColor: current.color, color: 'white', fontSize: '0.75rem', fontWeight: '700', padding: '0.3rem 0.875rem', borderRadius: '999px' }}>
-              {current.label.toUpperCase()}
-            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem' }}>
+              <span style={{ backgroundColor: current.color, color: 'white', fontSize: '0.75rem', fontWeight: '700', padding: '0.3rem 0.875rem', borderRadius: '999px' }}>
+                {current.label.toUpperCase()}
+              </span>
+              {plan !== 'free' && !stripeSubscriptionId && planExpiresAt && (
+                <span style={{ backgroundColor: '#fef2f2', color: '#dc2626', fontSize: '0.7rem', fontWeight: '700', padding: '0.2rem 0.6rem', borderRadius: '999px', border: '1px solid #fecaca' }}>
+                  {t.dash.plan_cancelled_badge}
+                </span>
+              )}
+            </div>
           </div>
 
           {isSuperAdmin ? (
@@ -114,13 +176,30 @@ export default function BillingPage() {
               </div>
               {planSuccess && <p style={{ color: '#22c55e', fontSize: '0.8rem', marginTop: '0.75rem' }}>{t.dash.plan_success}</p>}
             </div>
+          ) : plan !== 'free' && stripeSubscriptionId ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+              <p style={{ fontSize: '0.85rem', color: '#6b7280', lineHeight: 1.6, margin: 0 }}>
+                Az előfizetésedet lentebb a <strong>Csomag váltás</strong> szekcióban tudod módosítani.
+              </p>
+              <button
+                onClick={() => { setCancelError(''); setShowCancelConfirm(true) }}
+                style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1.5px solid #fca5a5', backgroundColor: '#fff5f5', color: '#dc2626', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >
+                {t.dash.plan_cancel_btn}
+              </button>
+            </div>
+          ) : plan !== 'free' && !stripeSubscriptionId && planExpiresAt ? (
+            <div style={{ padding: '0.875rem 1rem', backgroundColor: '#fff7ed', borderRadius: '8px', border: '1px solid #fed7aa' }}>
+              <p style={{ fontSize: '0.85rem', color: '#92400e', margin: 0, lineHeight: 1.6 }}>
+                ⚠️ <strong>{t.dash.plan_cancelled_info}:</strong>{' '}
+                {new Date(planExpiresAt).toLocaleDateString(dateLocale)}
+              </p>
+            </div>
           ) : (
             <div>
-              <p style={{ fontSize: '0.85rem', color: '#6b7280', lineHeight: 1.6, marginBottom: '1rem' }}>{t.dash.billing_contact}</p>
-              <a href="mailto:kusalarudika@gmail.com?subject=CLERICITY csomag váltás"
-                style={{ display: 'inline-block', backgroundColor: '#2563eb', color: 'white', padding: '0.625rem 1.5rem', borderRadius: '8px', textDecoration: 'none', fontWeight: '600', fontSize: '0.875rem' }}>
-                {t.dash.billing_contact_btn}
-              </a>
+              <p style={{ fontSize: '0.85rem', color: '#6b7280', lineHeight: 1.6 }}>
+                Az előfizetésedet lentebb a <strong>Csomag váltás</strong> szekcióban tudod módosítani Stripe-on keresztül.
+              </p>
             </div>
           )}
         </div>
@@ -135,9 +214,6 @@ export default function BillingPage() {
               const isCurrent = p.key === plan
               const isUpgrade = pIdx > currentIdx
               const isDowngrade = pIdx < currentIdx
-              const emailSubject = encodeURIComponent(`CLERICITY csomag váltás — ${p.label} csomag`)
-              const emailBody = encodeURIComponent(`Sziasztok!\n\nSzeretnék váltani a(z) ${current.label} csomagról a(z) ${p.label} csomagra (${p.price}/hó).\n\nAz aktiválást fizet és azonnal kérem.\n\nKöszönöm!`)
-              const mailtoHref = `mailto:kusalarudika@gmail.com?subject=${emailSubject}&body=${emailBody}`
               return (
                 <div key={p.key} style={{ borderRadius: '12px', padding: '1.25rem', border: `2px solid ${isCurrent ? p.color : isUpgrade ? p.border : '#e5e7eb'}`, backgroundColor: isCurrent ? p.bg : isUpgrade ? '#fafffe' : '#f9fafb', opacity: isDowngrade ? 0.7 : 1, display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.25rem' }}>
@@ -163,19 +239,56 @@ export default function BillingPage() {
                         {isUpgrade ? `⚡ ${t.dash.plan_active_badge} → ${p.label}` : `${t.dash.plan_switch_title.replace('🔄 ', '')} → ${p.label}`}
                       </button>
                     ) : (
-                      <a href={mailtoHref} style={{ display: 'block', textAlign: 'center', textDecoration: 'none', padding: '0.6rem 0.5rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '700', backgroundColor: isUpgrade ? p.color : 'white', color: isUpgrade ? 'white' : '#6b7280', border: isUpgrade ? 'none' : '1.5px solid #e5e7eb' }}>
-                        {isUpgrade ? `Upgrade → ${p.label}` : `${t.dash.plan_switch_title.replace('🔄 ', '')} → ${p.label}`}
-                      </a>
+                      <button
+                        onClick={() => isUpgrade && handleStripeCheckout(p.key)}
+                        disabled={!!checkoutLoading || !isUpgrade}
+                        style={{ width: '100%', padding: '0.6rem 0.5rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '700', border: isUpgrade ? 'none' : '1.5px solid #e5e7eb', cursor: isUpgrade && !checkoutLoading ? 'pointer' : 'not-allowed', backgroundColor: isUpgrade ? p.color : 'white', color: isUpgrade ? 'white' : '#6b7280', opacity: checkoutLoading && checkoutLoading !== p.key ? 0.5 : 1 }}>
+                        {checkoutLoading === p.key ? '⏳ Átirányítás...' : isUpgrade ? `💳 Upgrade → ${p.label}` : `${t.dash.plan_switch_title.replace('🔄 ', '')} → ${p.label}`}
+                      </button>
                     )
                   )}
                 </div>
               )
             })}
           </div>
-          <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '1.25rem' }}>
-            {isSuperAdmin ? t.dash.plan_super_note : t.dash.plan_user_note}
+          {checkoutError && (
+            <p style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '1rem' }}>❌ {checkoutError}</p>
+          )}
+          <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '1rem' }}>
+            {isSuperAdmin ? t.dash.plan_super_note : '💳 A fizetés biztonságosan Stripe-on keresztül történik. Hitelkártya vagy bankkártya elfogadott.'}
           </p>
         </div>
+
+        {/* Érvényesség sáv */}
+        {plan !== 'free' && planExpiresAt && (() => {
+          const now = new Date()
+          const expires = new Date(planExpiresAt)
+          const graceEnd = new Date(expires); graceEnd.setDate(graceEnd.getDate() + 3)
+          const msLeft = expires.getTime() - now.getTime()
+          const days = Math.ceil(msLeft / (1000 * 60 * 60 * 24))
+          const isExpired = now > graceEnd
+          const isGrace = now > expires && now <= graceEnd
+          const isWarning = days <= 7 && !isGrace && !isExpired
+          const bg = isExpired ? '#fef2f2' : isGrace ? '#fff7ed' : isWarning ? '#fefce8' : '#f0fdf4'
+          const border = isExpired ? '#fecaca' : isGrace ? '#fed7aa' : isWarning ? '#fef08a' : '#bbf7d0'
+          const color = isExpired ? '#dc2626' : isGrace ? '#92400e' : isWarning ? '#854d0e' : '#15803d'
+          const icon = isExpired ? '🔴' : isGrace ? '⚠️' : isWarning ? '⏳' : '✅'
+          return (
+            <div style={{ backgroundColor: bg, border: `1px solid ${border}`, borderRadius: '10px', padding: '0.875rem 1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.875rem', color, fontWeight: '600' }}>
+                {icon} {t.dash.plan_valid_until}:
+              </span>
+              <span style={{ fontSize: '1rem', color, fontWeight: '800' }}>
+                {expires.toLocaleDateString(dateLocale, { year: 'numeric', month: 'long', day: 'numeric' })}
+                {!isExpired && !isGrace && (
+                  <span style={{ fontSize: '0.8rem', fontWeight: '400', color, opacity: 0.8, marginLeft: '0.5rem' }}>
+                    ({days > 0 ? `${days} ${t.dash.delay_day}` : t.dash.plan_expired_grace})
+                  </span>
+                )}
+              </span>
+            </div>
+          )
+        })()}
 
         {/* Számla kivonatok */}
         <div style={{ backgroundColor: 'white', padding: '1.75rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
@@ -203,6 +316,57 @@ export default function BillingPage() {
         </div>
 
       </div>
+
+      {/* Lemondás megerősítő modal */}
+      {showCancelConfirm && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '2rem', maxWidth: '420px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>⚠️</div>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#111827', marginBottom: '0.75rem' }}>
+                {t.dash.plan_cancel_confirm_title}
+              </h2>
+              <p style={{ fontSize: '0.9rem', color: '#374151', lineHeight: 1.7, marginBottom: '0.5rem' }}>
+                Az előfizetésed nem újul meg automatikusan.
+              </p>
+              {planExpiresAt && (
+                <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '0.75rem 1rem', marginTop: '0.75rem' }}>
+                  <p style={{ fontSize: '0.85rem', color: '#15803d', margin: 0, fontWeight: '600' }}>
+                    A(z) <strong>{current.label}</strong> csomagod aktív marad:
+                  </p>
+                  <p style={{ fontSize: '1rem', color: '#166534', margin: '0.25rem 0 0', fontWeight: '800' }}>
+                    {new Date(planExpiresAt).toLocaleDateString(dateLocale, { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                  <p style={{ fontSize: '0.8rem', color: '#15803d', margin: '0.25rem 0 0' }}>
+                    Ezután visszavált az ingyenes csomagra.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {cancelError && (
+              <p style={{ color: '#ef4444', fontSize: '0.8rem', textAlign: 'center', marginBottom: '1rem' }}>❌ {cancelError}</p>
+            )}
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                disabled={cancelLoading}
+                style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: '1.5px solid #e5e7eb', backgroundColor: 'white', color: '#374151', fontWeight: '600', cursor: cancelLoading ? 'not-allowed' : 'pointer', fontSize: '0.875rem' }}
+              >
+                {t.dash.profile_cancel}
+              </button>
+              <button
+                onClick={handleCancelSubscription}
+                disabled={cancelLoading}
+                style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: 'none', backgroundColor: cancelLoading ? '#f3f4f6' : '#dc2626', color: cancelLoading ? '#9ca3af' : 'white', fontWeight: '700', cursor: cancelLoading ? 'not-allowed' : 'pointer', fontSize: '0.875rem' }}
+              >
+                {cancelLoading ? '⏳ ...' : t.dash.plan_cancel_confirm_yes}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -49,6 +49,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         router.push('/staff')
         return
       }
+      if (!data) {
+        router.push('/auth')
+        return
+      }
       setProfile(data)
       if (data?.role === 'super_admin' && user.email === SUPER_ADMIN_EMAIL) {
         setIsSuperAdmin(true)
@@ -101,7 +105,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const sidebarContent = (
     <>
       <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #334155' }}>
-        <Image src="/clericity-logo.png" alt="CLERICITY" width={110} height={36} style={{ objectFit: 'contain', width: '110px', height: 'auto', marginBottom: '0.5rem' }} loading="eager" />
+        <Image src="/clericity-logo.png" alt="CLERICITY" width={110} height={36} style={{ objectFit: 'contain', marginBottom: '0.5rem' }} loading="eager" />
         <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: '0 0 0.5rem' }}>{profile?.full_name}</p>
         <LanguageSwitcher lang={lang} setLang={setLang} dark />
       </div>

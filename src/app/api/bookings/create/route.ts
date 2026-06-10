@@ -5,6 +5,7 @@ import { getIP, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit'
 import { sanitizeText, sanitizeEmail, sanitizePhone, isValidUUID, isValidDate, isValidTime, safeFilterValue } from '@/lib/validate'
 import { writeAuditLog } from '@/lib/audit'
 import { verifyTurnstile } from '@/lib/turnstile'
+import { areNamesBlocked } from '@/lib/nameFilter'
 
 export async function POST(request: Request) {
   if (!checkRateLimit(getIP(request), 'bookings/create', 10, 10 * 60 * 1000)) {
@@ -48,6 +49,9 @@ export async function POST(request: Request) {
   }
   if (!firstName || !lastName) {
     return NextResponse.json({ error: 'Név megadása kötelező.' }, { status: 400 })
+  }
+  if (areNamesBlocked(firstName, lastName)) {
+    return NextResponse.json({ error: 'Ez a név nem elfogadható.' }, { status: 400 })
   }
   if (!email) {
     return NextResponse.json({ error: 'Érvénytelen email cím.' }, { status: 400 })

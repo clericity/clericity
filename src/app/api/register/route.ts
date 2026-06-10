@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabaseServer'
 import { NextResponse } from 'next/server'
 import { getIP, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit'
 import { sanitizeText, sanitizePhone, isValidUUID } from '@/lib/validate'
+import { areNamesBlocked } from '@/lib/nameFilter'
 
 const VALID_PLANS = ['free', 'basic', 'pro', 'business']
 const VALID_REG_TYPES = ['personal', 'business']
@@ -27,6 +28,10 @@ export async function POST(request: Request) {
   const validRegType = VALID_REG_TYPES.includes(registrationType) ? registrationType : 'personal'
 
   const isBusinessReg = validRegType === 'business'
+  if (areNamesBlocked(fullName, companyName)) {
+    return NextResponse.json({ error: 'Ez a név nem elfogadható.' }, { status: 400 })
+  }
+
   const tenantName = isBusinessReg ? (companyName || 'Új vállalkozás') : (fullName || 'Új üzlet')
   const now = new Date()
   const expiresAt = new Date(now); expiresAt.setDate(expiresAt.getDate() + 30)

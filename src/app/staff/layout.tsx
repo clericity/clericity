@@ -52,7 +52,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const sidebarContent = (
     <>
       <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #334155' }}>
-        <Image src="/clericity-logo.png" alt="CLERICITY" width={100} height={32} style={{ objectFit: 'contain', width: '100px', height: 'auto', marginBottom: '0.5rem' }} />
+        <Image src="/clericity-logo.png" alt="CLERICITY" width={100} height={32} style={{ objectFit: 'contain', marginBottom: '0.5rem' }} />
         <p style={{ fontSize: '0.7rem', color: '#64748b', margin: 0, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Munkás panel</p>
         <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '0.25rem 0 0' }}>{profile?.full_name}</p>
       </div>

@@ -199,6 +199,8 @@ export const translations = {
       have_account: 'Már van fiókod?',
       sign_up: 'Regisztrálj',
       sign_in: 'Lépj be',
+      plan_label: 'Válassz csomagot',
+      register_pay: 'Regisztrálok & fizetek →',
     },
     // Footer
     footer: {
@@ -290,6 +292,7 @@ export const translations = {
       waitlist_desc_day: 'Add meg adataidat és értesítünk, amint szabad időpont nyílik ezen a napon.',
       lastname_required: 'Vezetéknév *',
       firstname_required: 'Keresztnév *',
+      name_blocked: 'Ez a név nem elfogadható.',
     },
     // Email defaults (server-side)
     email: {
@@ -536,6 +539,11 @@ export const translations = {
       free_no_invoice: 'Nincs fizetési kötelezettség — nem kerül számlázásra.',
       no_invoices: 'Még nincs számla — a Stripe integráció után itt jelennek meg a havi számlák.',
       plan_success: '✅ Csomag frissítve!',
+      plan_cancel_btn: 'Csomag lemondása',
+      plan_cancel_confirm_title: 'Biztosan lemondod?',
+      plan_cancel_confirm_yes: 'Igen, mondom le',
+      plan_cancelled_badge: 'Lemondva',
+      plan_cancelled_info: 'Az előfizetés nem újul meg — aktív',
       email_lock_title: 'Email testreszabás',
       email_lock_desc: 'Az ingyenes csomagban az emailek alapértelmezett sablonnal mennek ki. A saját szövegedhez, automatizációkhoz és sablonokhoz válts magasabb csomagra.',
       email_lock_preview: 'Előnézet — szerkesztés zárolva',
@@ -771,6 +779,8 @@ export const translations = {
       have_account: 'Already have an account?',
       sign_up: 'Sign up',
       sign_in: 'Sign in',
+      plan_label: 'Choose a plan',
+      register_pay: 'Register & pay →',
     },
     footer: {
       privacy: 'Privacy Policy',
@@ -860,6 +870,7 @@ export const translations = {
       waitlist_desc_day: "Enter your details and we'll notify you when a slot opens on this day.",
       lastname_required: 'Last name *',
       firstname_required: 'First name *',
+      name_blocked: 'This name is not acceptable.',
     },
     // Email defaults (server-side)
     email: {
@@ -1104,6 +1115,11 @@ export const translations = {
       free_no_invoice: 'No payment required — not billed.',
       no_invoices: 'No invoices yet — they will appear here after Stripe integration.',
       plan_success: '✅ Plan updated!',
+      plan_cancel_btn: 'Cancel subscription',
+      plan_cancel_confirm_title: 'Are you sure?',
+      plan_cancel_confirm_yes: 'Yes, cancel it',
+      plan_cancelled_badge: 'Cancelled',
+      plan_cancelled_info: 'Subscription will not renew — active until',
       email_lock_title: 'Email customization',
       email_lock_desc: 'In the free plan, emails are sent with a default template. To use your own text, automations and templates, upgrade your plan.',
       email_lock_preview: 'Preview — editing locked',
@@ -1339,6 +1355,8 @@ export const translations = {
       have_account: 'Už máte účet?',
       sign_up: 'Zaregistrujte sa',
       sign_in: 'Prihláste sa',
+      plan_label: 'Vyberte plán',
+      register_pay: 'Zaregistrovať & zaplatiť →',
     },
     footer: {
       privacy: 'Ochrana osobných údajov',
@@ -1428,6 +1446,7 @@ export const translations = {
       waitlist_desc_day: 'Zadajte údaje a upozorníme vás, keď sa uvoľní termín na tento deň.',
       lastname_required: 'Priezvisko *',
       firstname_required: 'Meno *',
+      name_blocked: 'Toto meno nie je prijateľné.',
     },
     // Email defaults (server-side)
     email: {
@@ -1672,6 +1691,11 @@ export const translations = {
       free_no_invoice: 'Žiadna platobná povinnosť — nie je fakturované.',
       no_invoices: 'Zatiaľ žiadne faktúry — zobrazia sa tu po integrácii Stripe.',
       plan_success: '✅ Plán aktualizovaný!',
+      plan_cancel_btn: 'Zrušiť predplatné',
+      plan_cancel_confirm_title: 'Naozaj chcete zrušiť?',
+      plan_cancel_confirm_yes: 'Áno, zrušiť',
+      plan_cancelled_badge: 'Zrušené',
+      plan_cancelled_info: 'Predplatné sa neobnoví — aktívne do',
       email_lock_title: 'Prispôsobenie emailov',
       email_lock_desc: 'V bezplatnom pláne sa emaily posielajú s predvolenou šablónou. Pre vlastné texty, automatizácie a šablóny prejdite na vyšší plán.',
       email_lock_preview: 'Náhľad — úprava zamknutá',

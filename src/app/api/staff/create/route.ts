@@ -5,6 +5,7 @@ import { getAuthUser, getUserTenantId, unauthorizedResponse, forbiddenResponse }
 import { writeAuditLog } from '@/lib/audit'
 import { translations } from '@/lib/translations'
 import type { Lang } from '@/lib/translations'
+import { isNameBlocked } from '@/lib/nameFilter'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -19,6 +20,9 @@ export async function POST(request: Request) {
 
   if (!tenantId || !name || !email || !initialPassword) {
     return NextResponse.json({ error: 'Név, email és jelszó megadása kötelező' }, { status: 400 })
+  }
+  if (isNameBlocked(name)) {
+    return NextResponse.json({ error: 'Ez a név nem elfogadható.' }, { status: 400 })
   }
 
   if (initialPassword.length < 6) {

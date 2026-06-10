@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import RichTextEditor from '@/components/RichTextEditor'
 import { useLanguage } from '@/hooks/useLanguage'
+import { areNamesBlocked } from '@/lib/nameFilter'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -97,7 +98,8 @@ export default function SettingsPage() {
 
   // ── Profile tab ──
   const [ownerStaffId, setOwnerStaffId] = useState<string | null>(null)
-  const [ownerName, setOwnerName] = useState('')
+  const [ownerFirstName, setOwnerFirstName] = useState('')
+  const [ownerLastName, setOwnerLastName] = useState('')
   const [ownerAge, setOwnerAge] = useState('')
   const [ownerBio, setOwnerBio] = useState('')
   const [ownerPhoto, setOwnerPhoto] = useState('')
@@ -207,7 +209,9 @@ export default function SettingsPage() {
       const { data: staff } = await supabase.from('staff').select('id, name, age, bio, profile_photo, reference_photos').eq('tenant_id', tenantId).eq('is_owner', true).single()
       if (staff) {
         setOwnerStaffId(staff.id)
-        setOwnerName(staff.name || '')
+        const nameParts = (staff.name || '').split(' ')
+        setOwnerLastName(nameParts[0] || '')
+        setOwnerFirstName(nameParts.slice(1).join(' '))
         setOwnerAge(staff.age?.toString() || '')
         setOwnerBio(staff.bio || '')
         setOwnerPhoto(staff.profile_photo || '')
@@ -253,6 +257,10 @@ export default function SettingsPage() {
   // ── Profile handlers ──
   const handleSaveProfile = async () => {
     if (!ownerStaffId) return
+    if (areNamesBlocked(ownerFirstName, ownerLastName)) {
+      setProfileError(t.booking.name_blocked)
+      return
+    }
     setProfileSaving(true); setProfileSuccess(false); setProfileError('')
     let finalPhotoUrl = ownerPhoto
     if (ownerPhotoFile) {
@@ -263,7 +271,9 @@ export default function SettingsPage() {
       const { data: urlData } = supabase.storage.from('staff-photos').getPublicUrl(fileName)
       finalPhotoUrl = urlData.publicUrl
     }
-    const { error } = await supabase.from('staff').update({ age: ownerAge ? parseInt(ownerAge) : null, bio: ownerBio, profile_photo: finalPhotoUrl }).eq('id', ownerStaffId)
+    const fullName = `${ownerLastName} ${ownerFirstName}`.trim()
+    const { error } = await supabase.from('staff').update({ name: fullName, age: ownerAge ? parseInt(ownerAge) : null, bio: ownerBio, profile_photo: finalPhotoUrl }).eq('id', ownerStaffId)
+    if (!error && userId) await supabase.from('profiles').update({ full_name: fullName }).eq('id', userId)
     if (error) setProfileError('Mentés sikertelen: ' + error.message)
     else { setOwnerPhoto(finalPhotoUrl); setProfileSuccess(true) }
     setProfileSaving(false)
@@ -870,10 +880,17 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>{t.dash.profile_name_label}</label>
-              <input type="text" value={ownerName} disabled style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '0.625rem 1rem', color: '#6b7280', backgroundColor: '#f9fafb', outline: 'none', boxSizing: 'border-box', cursor: 'not-allowed' }} />
-              <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>{t.dash.profile_name_hint_general}</p>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>{t.booking.lastname_required}</label>
+                <input type="text" value={ownerLastName} onChange={e => setOwnerLastName(e.target.value)} placeholder="Kovács"
+                  style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0.625rem 0.75rem', color: '#111827', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>{t.booking.firstname_required}</label>
+                <input type="text" value={ownerFirstName} onChange={e => setOwnerFirstName(e.target.value)} placeholder="János"
+                  style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0.625rem 0.75rem', color: '#111827', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
             </div>
 
             <div style={{ marginBottom: '1.25rem' }}>

@@ -1,9 +1,11 @@
 import type { NextConfig } from 'next'
 
+const isDev = process.env.NODE_ENV === 'development'
+
 const csp = [
   "default-src 'self'",
-  // Next.js inline hydration scripteket használ — unsafe-inline szükséges nonce nélkül
-  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
+  // unsafe-eval csak dev módban kell (React debug features); prodban nem szerepel
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://challenges.cloudflare.com`,
   // Inline style attribútumok az egész appban (JSX style={{}})
   "style-src 'self' 'unsafe-inline'",
   // Supabase Storage logók/fotók + Google profilképek
