@@ -52,19 +52,10 @@ export default function AuthPage() {
           .single()
 
         if (!existingProfile) {
-          // Auth user létezik de nincs profil → automatikusan létrehozzuk
-          const fallbackName = email.split('@')[0] || 'Felhasználó'
-          const res = await fetch('/api/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: loginData.user.id, fullName: fallbackName }),
-          })
-          const result = await res.json()
-          if (result.error) {
-            setError('Profil létrehozása sikertelen: ' + result.error)
-            setLoading(false)
-            return
-          }
+          await supabase.auth.signOut()
+          setError(t.auth.no_profile_error)
+          setLoading(false)
+          return
         }
 
         router.push('/dashboard')
