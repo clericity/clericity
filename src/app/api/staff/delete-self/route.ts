@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseServer'
+import { getAuthUser, unauthorizedResponse, forbiddenResponse } from '@/lib/auth'
 
 export async function POST(request: Request) {
+  const user = await getAuthUser(request)
+  if (!user) return unauthorizedResponse()
+
   const { userId } = await request.json()
   if (!userId) return NextResponse.json({ error: 'Hiányzó felhasználó ID' }, { status: 400 })
+
+  if (userId !== user.id) return forbiddenResponse()
 
   // Ellenőrzés: ne legyen tulajdonos
   const { data: staff } = await supabaseAdmin

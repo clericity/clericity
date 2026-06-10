@@ -3,15 +3,16 @@ import type { NextConfig } from 'next'
 const csp = [
   "default-src 'self'",
   // Next.js inline hydration scripteket használ — unsafe-inline szükséges nonce nélkül
-  "script-src 'self' 'unsafe-inline'",
+  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
   // Inline style attribútumok az egész appban (JSX style={{}})
   "style-src 'self' 'unsafe-inline'",
   // Supabase Storage logók/fotók + Google profilképek
   "img-src 'self' data: blob: https://smheyvllxkhjfrapuufb.supabase.co https://lh3.googleusercontent.com",
   "font-src 'self'",
-  // Supabase HTTP + WebSocket (Realtime), Google Auth
-  "connect-src 'self' https://smheyvllxkhjfrapuufb.supabase.co wss://smheyvllxkhjfrapuufb.supabase.co https://accounts.google.com",
-  "frame-src 'none'",
+  // Supabase HTTP + WebSocket (Realtime), Google Auth, Cloudflare Turnstile
+  "connect-src 'self' https://smheyvllxkhjfrapuufb.supabase.co wss://smheyvllxkhjfrapuufb.supabase.co https://accounts.google.com https://challenges.cloudflare.com",
+  // Cloudflare Turnstile iframe (csak challenge domain — clickjacking ellen az X-Frame-Options véd)
+  "frame-src https://challenges.cloudflare.com",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

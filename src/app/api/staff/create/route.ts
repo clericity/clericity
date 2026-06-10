@@ -1,11 +1,19 @@
 ﻿import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseServer'
 import { Resend } from 'resend'
+import { getAuthUser, getUserTenantId, unauthorizedResponse, forbiddenResponse } from '@/lib/auth'
+import { writeAuditLog } from '@/lib/audit'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(request: Request) {
+  const user = await getAuthUser(request)
+  if (!user) return unauthorizedResponse()
+
   const { tenantId, name, email, phone, initialPassword } = await request.json()
+
+  const userTenantId = await getUserTenantId(user.id)
+  if (tenantId !== userTenantId) return forbiddenResponse()
 
   if (!tenantId || !name || !email || !initialPassword) {
     return NextResponse.json({ error: 'Név, email és jelszó megadása kötelező' }, { status: 400 })
@@ -152,6 +160,15 @@ export async function POST(request: Request) {
         </body>
       </html>
     `,
+  })
+
+  await writeAuditLog({
+    tenantId,
+    userId: user.id,
+    action: 'staff.create',
+    entityType: 'staff',
+    entityId: staffRecord.id,
+    metadata: { name },
   })
 
   if (emailError) {

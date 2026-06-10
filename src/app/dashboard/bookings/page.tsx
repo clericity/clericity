@@ -412,9 +412,10 @@ export default function BookingsPage() {
   }
 
   const handleDeleteBooking = async (id: string) => {
+    const { data: { session } } = await supabase.auth.getSession()
     const res = await fetch('/api/bookings/delete', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
       body: JSON.stringify({ bookingId: id }),
     })
     const data = await res.json().catch(() => ({}))

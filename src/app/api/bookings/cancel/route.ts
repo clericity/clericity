@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabaseServer'
 import { getGoogleAccessToken } from '@/lib/googleAuth'
 import { getIP, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit'
 import { isValidUUID } from '@/lib/validate'
+import { writeAuditLog } from '@/lib/audit'
 
 export async function POST(request: Request) {
   if (!checkRateLimit(getIP(request), 'bookings/cancel', 10, 10 * 60 * 1000)) {
@@ -39,6 +40,15 @@ export async function POST(request: Request) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 })
   }
+
+  await writeAuditLog({
+    tenantId: booking.tenant_id,
+    userId: null,
+    action: 'booking.cancel',
+    entityType: 'booking',
+    entityId: booking.id,
+    metadata: { start_time: booking.start_time },
+  })
 
   // Google Calendar esemény törlése — ugyanolyan fallback logika mint create-nél
   if (booking.google_event_id) {

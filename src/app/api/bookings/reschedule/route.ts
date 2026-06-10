@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabaseServer'
 import { getGoogleAccessToken } from '@/lib/googleAuth'
 import { getIP, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit'
 import { isValidUUID, isValidDate, isValidTime } from '@/lib/validate'
+import { writeAuditLog } from '@/lib/audit'
 
 export async function POST(request: Request) {
   if (!checkRateLimit(getIP(request), 'bookings/reschedule', 10, 10 * 60 * 1000)) {
@@ -107,6 +108,15 @@ export async function POST(request: Request) {
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 400 })
   }
+
+  await writeAuditLog({
+    tenantId: booking.tenant_id,
+    userId: null,
+    action: 'booking.reschedule',
+    entityType: 'booking',
+    entityId: booking.id,
+    metadata: { old_start_time: booking.start_time, new_start_time: startDateTime },
+  })
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
   const rescheduleCustomerName = `${booking.customer_last_name} ${booking.customer_first_name}`

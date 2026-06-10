@@ -1,14 +1,19 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseServer'
 import { getGoogleAccessToken } from '@/lib/googleAuth'
+import { getAuthUser, getUserTenantId, unauthorizedResponse, forbiddenResponse } from '@/lib/auth'
+import { writeAuditLog } from '@/lib/audit'
 
 export async function POST(request: Request) {
+  const user = await getAuthUser(request)
+  if (!user) return unauthorizedResponse()
+
   const { bookingId } = await request.json()
   if (!bookingId) return NextResponse.json({ error: 'Hiányzó bookingId' }, { status: 400 })
 
   const { data: booking, error: fetchErr } = await supabaseAdmin
     .from('bookings')
-    .select('id, tenant_id, google_event_id, staff_id')
+    .select('id, tenant_id, google_event_id, staff_id, start_time')
     .eq('id', bookingId)
     .single()
 
@@ -16,6 +21,9 @@ export async function POST(request: Request) {
     console.error('[delete] booking not found', fetchErr)
     return NextResponse.json({ error: 'Foglalás nem található' }, { status: 404 })
   }
+
+  const userTenantId = await getUserTenantId(user.id)
+  if (booking.tenant_id !== userTenantId) return forbiddenResponse()
 
   console.log('[delete] booking:', { id: booking.id, google_event_id: booking.google_event_id, staff_id: booking.staff_id, tenant_id: booking.tenant_id })
 
@@ -75,6 +83,15 @@ export async function POST(request: Request) {
   }
 
   await supabaseAdmin.from('bookings').delete().eq('id', bookingId)
+
+  await writeAuditLog({
+    tenantId: booking.tenant_id,
+    userId: user.id,
+    action: 'booking.delete',
+    entityType: 'booking',
+    entityId: bookingId,
+    metadata: { start_time: booking.start_time, staff_id: booking.staff_id ?? null },
+  })
 
   return NextResponse.json({ success: true, gcalResult })
 }

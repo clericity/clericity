@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useParams } from 'next/navigation'
 import Image from 'next/image'
+import Turnstile from '@marsidev/react-turnstile'
 
 
 const MONTHS = ['Január', 'Február', 'Március', 'Április', 'Május', 'Június', 'Július', 'Augusztus', 'Szeptember', 'Október', 'November', 'December']
@@ -44,6 +45,8 @@ export default function BookingPage() {
   const [waitlistSuccess, setWaitlistSuccess] = useState(false)
   const [waitlistError, setWaitlistError] = useState('')
   const [honeypot, setHoneypot] = useState('')
+  const [bookingTurnstileToken, setBookingTurnstileToken] = useState('')
+  const [waitlistTurnstileToken, setWaitlistTurnstileToken] = useState('')
   const [staffList, setStaffList] = useState<{ id: string; name: string; profile_photo: string | null; bio: string | null }[]>([])
   const [selectedStaff, setSelectedStaff] = useState<{ id: string; name: string; profile_photo: string | null; bio: string | null } | null>(null)
   const [staffEarliestSlots, setStaffEarliestSlots] = useState<Record<string, { date: string; slots: string[] } | null>>({})
@@ -164,7 +167,7 @@ export default function BookingPage() {
     const res = await fetch('/api/bookings/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tenantId: tenant.id, serviceId: selectedService.id, staffId: selectedStaff?.id, date: selectedDate, slot: selectedSlot, duration: selectedService.duration_minutes, firstName, lastName, email, phone, website: honeypot }),
+      body: JSON.stringify({ tenantId: tenant.id, serviceId: selectedService.id, staffId: selectedStaff?.id, date: selectedDate, slot: selectedSlot, duration: selectedService.duration_minutes, firstName, lastName, email, phone, website: honeypot, cf_turnstile_response: bookingTurnstileToken }),
     })
     const data = await res.json()
     if (data.error) setBookingError(data.error)
@@ -188,6 +191,7 @@ export default function BookingPage() {
         email,
         phone,
         website: honeypot,
+        cf_turnstile_response: waitlistTurnstileToken,
       }),
     })
     const data = await res.json()
@@ -702,6 +706,15 @@ export default function BookingPage() {
                       <div style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', overflow: 'hidden', opacity: 0 }} aria-hidden="true">
                         <input name="website" type="text" value={honeypot} onChange={e => setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" />
                       </div>
+                      <div style={{ marginBottom: '0.75rem' }}>
+                        <Turnstile
+                          siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                          onSuccess={setWaitlistTurnstileToken}
+                          onExpire={() => setWaitlistTurnstileToken('')}
+                          onError={() => setWaitlistTurnstileToken('')}
+                          options={{ theme: 'light', size: 'normal' }}
+                        />
+                      </div>
                       {waitlistError && <p style={{ color: '#ef4444', fontSize: '0.85rem', marginBottom: '0.75rem' }}>{waitlistError}</p>}
                       <div style={{ display: 'flex', gap: '0.625rem' }}>
                         <button onClick={() => setWaitlistMode(false)}
@@ -862,11 +875,21 @@ export default function BookingPage() {
                 <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: accentColor, textDecoration: 'underline' }}>adatvédelmi tájékoztatót</a>.
               </p>
 
+              <div style={{ marginBottom: '1rem' }}>
+                <Turnstile
+                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                  onSuccess={setBookingTurnstileToken}
+                  onExpire={() => setBookingTurnstileToken('')}
+                  onError={() => setBookingTurnstileToken('')}
+                  options={{ theme: 'light', size: 'normal' }}
+                />
+              </div>
+
               {bookingError && <p style={{ color: '#ef4444', fontSize: '0.875rem', marginBottom: '1rem' }}>{bookingError}</p>}
 
-              <button onClick={handleBooking} disabled={bookingLoading || !lastName || !firstName || !email}
+              <button onClick={handleBooking} disabled={bookingLoading || !lastName || !firstName || !email || !bookingTurnstileToken}
                 className="bk-continue-btn"
-                style={{ width: '100%', backgroundColor: bookingLoading || !lastName || !firstName || !email ? '#e5e7eb' : accentColor, color: bookingLoading || !lastName || !firstName || !email ? '#9ca3af' : 'white', borderRadius: '14px', border: 'none', cursor: bookingLoading || !lastName || !firstName || !email ? 'not-allowed' : 'pointer', fontWeight: '700', boxShadow: bookingLoading || !lastName || !firstName || !email ? 'none' : '0 4px 15px rgba(0,0,0,0.2)' }}>
+                style={{ width: '100%', backgroundColor: bookingLoading || !lastName || !firstName || !email || !bookingTurnstileToken ? '#e5e7eb' : accentColor, color: bookingLoading || !lastName || !firstName || !email || !bookingTurnstileToken ? '#9ca3af' : 'white', borderRadius: '14px', border: 'none', cursor: bookingLoading || !lastName || !firstName || !email || !bookingTurnstileToken ? 'not-allowed' : 'pointer', fontWeight: '700', boxShadow: bookingLoading || !lastName || !firstName || !email || !bookingTurnstileToken ? 'none' : '0 4px 15px rgba(0,0,0,0.2)' }}>
                 {bookingLoading ? 'Foglalás...' : 'Foglalás →'}
               </button>
             </div>

@@ -3,6 +3,7 @@ import { Resend } from 'resend'
 import { supabaseAdmin } from '@/lib/supabaseServer'
 import { getIP, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit'
 import { sanitizeText, sanitizeEmail, sanitizePhone, isValidUUID } from '@/lib/validate'
+import { verifyTurnstile } from '@/lib/turnstile'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -22,6 +23,10 @@ export async function POST(request: Request) {
 
   if (body.website) {
     return NextResponse.json({ success: true })
+  }
+
+  if (!await verifyTurnstile(body.cf_turnstile_response)) {
+    return NextResponse.json({ error: 'Kérjük igazolja, hogy nem robot.' }, { status: 400 })
   }
 
   if (!isValidUUID(tenantId)) {

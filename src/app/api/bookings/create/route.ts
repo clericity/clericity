@@ -3,6 +3,8 @@ import { supabaseAdmin } from '@/lib/supabaseServer'
 import { getGoogleAccessToken } from '@/lib/googleAuth'
 import { getIP, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit'
 import { sanitizeText, sanitizeEmail, sanitizePhone, isValidUUID, isValidDate, isValidTime, safeFilterValue } from '@/lib/validate'
+import { writeAuditLog } from '@/lib/audit'
+import { verifyTurnstile } from '@/lib/turnstile'
 
 export async function POST(request: Request) {
   if (!checkRateLimit(getIP(request), 'bookings/create', 10, 10 * 60 * 1000)) {
@@ -26,6 +28,10 @@ export async function POST(request: Request) {
 
   if (body.website) {
     return NextResponse.json({ success: true })
+  }
+
+  if (!await verifyTurnstile(body.cf_turnstile_response)) {
+    return NextResponse.json({ error: 'Kérjük igazolja, hogy nem robot.' }, { status: 400 })
   }
 
   if (!isValidUUID(tenantId) || !isValidUUID(serviceId)) {
@@ -203,6 +209,15 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ error: error.message }, { status: 400 })
   }
+
+  await writeAuditLog({
+    tenantId,
+    userId: null,
+    action: 'booking.create',
+    entityType: 'booking',
+    entityId: booking?.id ?? null,
+    metadata: { service_id: serviceId, staff_id: staff?.id ?? null, start_time: startDateTime },
+  })
 
   // Várólistáról eltávolítás ha ő foglalta le
   if (email) {

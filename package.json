@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@marsidev/react-turnstile": "^1.5.3",
     "@supabase/supabase-js": "^2.106.1",
     "fflate": "^0.8.3",
     "googleapis": "^172.0.0",

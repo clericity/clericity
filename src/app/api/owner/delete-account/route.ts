@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseServer'
+import { getAuthUser, unauthorizedResponse, forbiddenResponse } from '@/lib/auth'
+import { writeAuditLog } from '@/lib/audit'
 
 export async function POST(request: Request) {
+  const user = await getAuthUser(request)
+  if (!user) return unauthorizedResponse()
+
   const { userId } = await request.json()
   if (!userId) return NextResponse.json({ error: 'Hiányzó felhasználó ID' }, { status: 400 })
+
+  if (userId !== user.id) return forbiddenResponse()
 
   // Ellenőrzés: csak tulajdonos törölheti
   const { data: profile } = await supabaseAdmin
@@ -15,6 +22,15 @@ export async function POST(request: Request) {
   if (!profile?.tenant_id) return NextResponse.json({ error: 'Profil nem található' }, { status: 404 })
 
   const tenantId = profile.tenant_id
+
+  // Audit log ELŐBB — törlés után már nem létezik a tenant_id FK
+  await writeAuditLog({
+    tenantId,
+    userId: user.id,
+    action: 'account.delete',
+    entityType: 'account',
+    entityId: userId,
+  })
 
   // Törlés helyes sorrendben (FK függőségek miatt)
   await supabaseAdmin.from('email_automation_logs').delete().in(

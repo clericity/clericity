@@ -101,9 +101,10 @@ export default function StaffPage() {
     setError('')
     setSuccess(false)
 
+    const { data: { session: s1 } } = await supabase.auth.getSession()
     const res = await fetch('/api/staff/create', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s1?.access_token}` },
       body: JSON.stringify({ tenantId, name, email, phone, initialPassword }),
     })
     const result = await res.json()
@@ -160,9 +161,10 @@ export default function StaffPage() {
     if (!tenantId) return
     if (!confirm(t.dash.staff_delete_confirm)) return
 
+    const { data: { session: s2 } } = await supabase.auth.getSession()
     const res = await fetch('/api/staff/delete', {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s2?.access_token}` },
       body: JSON.stringify({ staffId: id, tenantId }),
     })
     const result = await res.json()
