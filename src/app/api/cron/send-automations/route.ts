@@ -22,8 +22,13 @@ function toHtml(text: string): string {
 }
 
 export async function GET(request: Request) {
+  const secret = process.env.CRON_SECRET
+  if (!secret) {
+    console.error('[cron] CRON_SECRET env variable is not set')
+    return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
+  }
   const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (authHeader !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
